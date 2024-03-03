@@ -52,7 +52,6 @@ def check_if_approved(
 
     token_contract_abi = json.load(open(os.path.join(base_dir,
                                                      'contracts',
-                                                     'v2',
                                                      'token_approval.json')))
 
     token_contract_obj = connection.eth.contract(address=token_to_approve,
