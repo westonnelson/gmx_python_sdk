@@ -125,6 +125,8 @@ class Deposit:
         user_wallet_address = CONFIG['user_wallet_address']
         self.determine_gas_limits()
 
+        self.check_for_approval()
+
         should_unwrap_native_token = True
 
         eth_zero_address = "0x0000000000000000000000000000000000000000"
