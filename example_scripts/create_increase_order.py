@@ -2,10 +2,10 @@ from utils import _set_paths
 
 _set_paths()
 
-from gmx_python_sdk_2.v2.order_argument_parser import OrderArgumentParser
-from gmx_python_sdk_2.v2.create_increase_order import IncreaseOrder
+from gmx_python_sdk.scripts.v2.order_argument_parser import OrderArgumentParser
+from gmx_python_sdk.scripts.v2.create_increase_order import IncreaseOrder
 
-from gmx_python_sdk_2.v2.gmx_utils import Config
+from gmx_python_sdk.scripts.v2.gmx_utils import Config
 
 # or omit argument to save/load config in base directory
 config_obj = Config()

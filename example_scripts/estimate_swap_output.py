@@ -3,10 +3,10 @@ from utils import _set_paths
 _set_paths()
 
 from web3 import Web3
-from gmx_python_sdk_2.v2.get_oracle_prices import GetOraclePrices
-from gmx_python_sdk_2.v2.get_markets import GetMarkets
-from gmx_python_sdk_2.v2.order_argument_parser import OrderArgumentParser
-from gmx_python_sdk_2.v2.gmx_utils import (
+from gmx_python_sdk.scripts.v2.get_oracle_prices import GetOraclePrices
+from gmx_python_sdk.scripts.v2.get_markets import GetMarkets
+from gmx_python_sdk.scripts.v2.order_argument_parser import OrderArgumentParser
+from gmx_python_sdk.scripts.v2.gmx_utils import (
     get_estimated_swap_output,
     contract_map,
     determine_swap_route,
