@@ -298,7 +298,6 @@ def get_token_balance_contract(chain: str, contract_address: str):
             os.path.join(
                 base_dir,
                 'contracts',
-                'v2',
                 'balance_abi.json'
             )
         )
