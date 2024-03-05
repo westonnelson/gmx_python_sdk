@@ -1,8 +1,8 @@
-from gmx_utils import (
+from .gmx_utils import (
     contract_map, get_tokens_address_dict, get_reader_contract
 )
 
-from get_oracle_prices import GetOraclePrices
+from .get_oracle_prices import GetOraclePrices
 
 
 class GetMarkets:
