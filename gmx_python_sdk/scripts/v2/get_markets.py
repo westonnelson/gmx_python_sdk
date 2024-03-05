@@ -1,6 +1,8 @@
-from .gmx_utils import (
+from gmx_utils import (
     contract_map, get_tokens_address_dict, get_reader_contract
 )
+
+from get_oracle_prices import GetOraclePrices
 
 
 class GetMarkets:
@@ -56,6 +58,9 @@ class GetMarkets:
         decoded_markets = {}
         for raw_market in raw_markets:
             try:
+
+                if not self._check_if_index_token_in_signed_prices_api(raw_market[1]):
+                    continue
                 decoded_markets[raw_market[0]] = {
                     'gmx_market_address': raw_market[0],
                     'market_symbol': (
@@ -72,6 +77,8 @@ class GetMarkets:
             # If KeyError it is because there is no market symbol and it is a
             # swap market
             except KeyError:
+                if not self._check_if_index_token_in_signed_prices_api(raw_market[1]):
+                    continue
                 decoded_markets[raw_market[0]] = {
                     'gmx_market_address': raw_market[0],
                     'market_symbol': 'SWAP {}-{}'.format(
@@ -90,6 +97,20 @@ class GetMarkets:
                 }
 
         return decoded_markets
+
+    def _check_if_index_token_in_signed_prices_api(self, index_token_address):
+
+        try:
+            prices = GetOraclePrices(chain=self.chain).get_recent_prices()
+
+            if index_token_address == "0x0000000000000000000000000000000000000000":
+                return True
+            prices[index_token_address]
+            return True
+        except KeyError:
+
+            print("{} market not live on GMX yet..".format(index_token_address))
+            return False
 
 
 if __name__ == '__main__':
