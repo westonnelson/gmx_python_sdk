@@ -22,7 +22,7 @@ class Order:
         self, chain: str, market_key: str, collateral_address: str,
         index_token_address: str, is_long: bool, size_delta: float,
         initial_collateral_delta_amount: str, slippage_percent: float,
-        swap_path: list, debug_mode: bool = False
+        swap_path: list, max_fee_per_gas: int = None, debug_mode: bool = False
     ) -> None:
 
         self.chain = chain
@@ -34,6 +34,7 @@ class Order:
         self.initial_collateral_delta_amount = initial_collateral_delta_amount
         self.slippage_percent = slippage_percent
         self.swap_path = swap_path
+        self.max_fee_per_gas = max_fee_per_gas
         self.debug_mode = debug_mode
 
         self._exchange_router_contract_obj = get_exchange_router_contract(
@@ -76,19 +77,27 @@ class Order:
             wallet_address
         )
 
+        # Calculate the max fee per gas from the last baseFeePerGas price and add 10%
+        if self.max_fee_per_gas is None:
+            block = create_connection(
+                get_config()['arbitrum']['rpc']
+            ).eth.get_block('latest')
+            self.max_fee_per_gas = block['baseFeePerGas'] * 1.1
+
         raw_txn = self._exchange_router_contract_obj.functions.multicall(
             multicall_args
         ).build_transaction(
             {
                 'value': value_amount,
                 'chainId': 42161,
+
                 # TODO - this is NOT correct
                 'gas': (
                     self._gas_limits_order_type.call(
                     ) + self._gas_limits_order_type.call()
                 ),
-                'maxFeePerGas': Web3.to_wei('0.1', 'gwei'),
-                'maxPriorityFeePerGas': Web3.to_wei('0.1', 'gwei'),
+                'maxFeePerGas': int(self.max_fee_per_gas),
+                'maxPriorityFeePerGas': int(self.max_fee_per_gas),
                 'nonce': nonce
             }
         )

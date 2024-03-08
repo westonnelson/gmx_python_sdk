@@ -27,6 +27,7 @@ class Withdraw:
         market_key: str,
         out_token: str,
         gm_amount: int,
+        max_fee_per_gas: int = None,
         debug_mode: bool = False
     ) -> None:
         self.chain = chain
@@ -35,6 +36,7 @@ class Withdraw:
         self.gm_amount = gm_amount
         self.long_token_swap_path = []
         self.short_token_swap_path = []
+        self.max_fee_per_gas = max_fee_per_gas,
         self.debug_mode = debug_mode
 
         self._exchange_router_contract_obj = get_exchange_router_contract(
@@ -78,6 +80,13 @@ class Withdraw:
             user_wallet_address
         )
 
+        # Calculate the max fee per gas from the last baseFeePerGas price and add 10%
+        if self.max_fee_per_gas is None:
+            block = create_connection(
+                get_config()['arbitrum']['rpc']
+            ).eth.get_block('latest')
+            self.max_fee_per_gas = block['baseFeePerGas'] * 1.1
+
         raw_txn = self._exchange_router_contract_obj.functions.multicall(
             multicall_args
         ).build_transaction(
@@ -89,8 +98,8 @@ class Withdraw:
                 'gas': (
                     self._gas_limits_order_type.call() + self._gas_limits_order_type.call()
                 ),
-                'maxFeePerGas': Web3.to_wei('0.12', 'gwei'),
-                'maxPriorityFeePerGas': Web3.to_wei('0.12', 'gwei'),
+                'maxFeePerGas': self.max_fee_per_gas,
+                'maxPriorityFeePerGas': self.max_fee_per_gas,
                 'nonce': nonce
             }
         )
