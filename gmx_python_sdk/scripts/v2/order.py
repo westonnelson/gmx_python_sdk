@@ -37,6 +37,12 @@ class Order:
         self.max_fee_per_gas = max_fee_per_gas
         self.debug_mode = debug_mode
 
+        if self.max_fee_per_gas is None:
+            block = create_connection(
+                get_config()['arbitrum']['rpc']
+            ).eth.get_block('latest')
+            self.max_fee_per_gas = block['baseFeePerGas'] * 1.35
+
         self._exchange_router_contract_obj = get_exchange_router_contract(
             chain=self.chain
         )
@@ -59,6 +65,7 @@ class Order:
                           spender,
                           self.collateral_address,
                           self.initial_collateral_delta_amount,
+                          self.max_fee_per_gas,
                           approve=True)
 
     def _submit_transaction(
@@ -77,13 +84,6 @@ class Order:
             wallet_address
         )
 
-        # Calculate the max fee per gas from the last baseFeePerGas price and add 10%
-        if self.max_fee_per_gas is None:
-            block = create_connection(
-                get_config()['arbitrum']['rpc']
-            ).eth.get_block('latest')
-            self.max_fee_per_gas = block['baseFeePerGas'] * 1.1
-
         raw_txn = self._exchange_router_contract_obj.functions.multicall(
             multicall_args
         ).build_transaction(
@@ -97,7 +97,7 @@ class Order:
                     ) + self._gas_limits_order_type.call()
                 ),
                 'maxFeePerGas': int(self.max_fee_per_gas),
-                'maxPriorityFeePerGas': int(self.max_fee_per_gas),
+                'maxPriorityFeePerGas': 0,
                 'nonce': nonce
             }
         )
