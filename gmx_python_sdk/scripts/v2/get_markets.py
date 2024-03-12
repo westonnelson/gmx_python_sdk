@@ -5,9 +5,22 @@ from .gmx_utils import (
 from .get_oracle_prices import GetOraclePrices
 
 
-class GetMarkets:
+class Markets:
     def __init__(self, chain):
         self.chain = chain
+        self.info = self._process_markets()
+
+    def get_index_token_address(self, market_key: str) -> str:
+        return self.info[market_key]['index_token_address']
+
+    def get_long_token_address(self, market_key: str) -> str:
+        return self.info[market_key]['long_token_address']
+
+    def get_short_token_address(self, market_key: str) -> str:
+        return self.info[market_key]['short_token_address']
+
+    def get_market_symbol(self, market_key: str) -> str:
+        return self.info[market_key]['market_symbol']
 
     def get_available_markets(self):
         """

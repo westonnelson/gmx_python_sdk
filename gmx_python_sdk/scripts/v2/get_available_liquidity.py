@@ -1,19 +1,19 @@
-import os
 import json
+import logging
+import os
 import time
 
 import numpy as np
-
 from numerize import numerize
+from typing import Tuple, Any
 
 from .get_markets import GetMarkets
+from .get_oracle_prices import GetOraclePrices
+from .get_open_interest import OpenInterest
 from .gmx_utils import (
     base_dir, execute_threading, save_json_file_to_datastore,
     make_timestamped_dataframe, save_csv_to_datastore
 )
-
-from .get_oracle_prices import GetOraclePrices
-from .get_open_interest import OpenInterest
 from .keys import (
     get_datastore_contract, pool_amount_key, reserve_factor_key,
     open_interest_reserve_factor_key
@@ -21,15 +21,18 @@ from .keys import (
 
 
 class GetAvailableLiquidity:
-
     def __init__(self, chain: str, use_local_datastore: bool = False):
-
         self.chain = chain
         self.use_local_datastore = use_local_datastore
 
+        self.log = logging.getLogger(__name__)
+        self._markets = None
+        self._long_token_address = None
+        self._short_token_address = None
+
     def get_available_liquidity(
         self, to_json: bool = False, to_csv: bool = False
-    ):
+    ) -> dict:
         """
         Call to get the available liquidity across all pools on a given
         chain defined in class init. Pass either to_json or to_csv to save
@@ -37,14 +40,14 @@ class GetAvailableLiquidity:
 
         Parameters
         ----------
-        to_json : bool, optional
+        to_json: bool, optional
             save output to json file. The default is False.
-        to_csv : bool, optional
+        to_csv: bool, optional
             save out to csv file. The default is False.
 
         Returns
         -------
-        data : dict
+        data: dict
             dictionary of data.
 
         """
@@ -71,16 +74,18 @@ class GetAvailableLiquidity:
         else:
             return data
 
-    def _available_liquidity(self):
+    def _available_liquidity(self) -> dict:
         """
         Generate the dictionary of available liquidity
 
         Returns
         -------
-        funding_apr : dict
+        funding_apr: dict
             dictionary of available liquidity
 
         """
+        self.log.info("\nGMX v2 Available Liquidity\n")
+
         if self.use_local_datastore:
             open_interest = json.load(
                 open(
@@ -96,15 +101,14 @@ class GetAvailableLiquidity:
                 to_json=False
             )
 
-        markets = GetMarkets(chain=self.chain).get_available_markets()
+        self._markets = GetMarkets(chain=self.chain).get_available_markets()
+
         available_liquidity = {
             "long": {
             },
             "short": {
             }
         }
-
-        print("\nGMX v2 Available Liquidity\n")
 
         reserved_long_list = []
         reserved_short_list = []
@@ -120,6 +124,10 @@ class GetAvailableLiquidity:
         short_precision_list = []
 
         for market_key in markets:
+            self.long_token_address = markets[market_key]['long_token_address']
+            self.short_token_address = (
+                markets[market_key]['short_token_address']
+            )
 
             # this will filter out swap markets
             market_symbol = markets[market_key]['market_symbol']
@@ -127,10 +135,10 @@ class GetAvailableLiquidity:
                 continue
 
             # collate market symbol to map dictionary later
-            mapper = mapper + [market_symbol]
+            mapper.append(market_symbol)
 
+            # long
             # calculate long pool metrics
-            long_token_address = markets[market_key]['long_token_address']
             long_pool_amount, long_reserve_factor,\
                 long_open_interest_reserve_factor = self.get_max_reserved_usd(
                     market_key,
@@ -142,54 +150,46 @@ class GetAvailableLiquidity:
             )
 
             # collate long side lists to iterate through
-            reserved_long_list = (
-                reserved_long_list + [open_interest['long'][market_symbol]]
+            reserved_long_list.append(
+                open_interest['long'][market_symbol]
             )
-            long_pool_amount_list = long_pool_amount_list + [long_pool_amount]
-            long_reserve_factor_list = (
-                long_reserve_factor_list + [long_reserve_factor]
+            long_pool_amount_list.append(long_pool_amount)
+            long_reserve_factor_list.append(long_reserve_factor)
+            long_open_interest_reserve_factor_list.append(
+                long_open_interest_reserve_factor
             )
-            long_open_interest_reserve_factor_list = (
-                long_open_interest_reserve_factor_list +
-                [long_open_interest_reserve_factor]
-            )
-            long_precision_list = long_precision_list + [long_precision]
+            long_precision_list.append(long_precision)
 
+            # short
             # calculate short pool metrics
-            short_token_address = markets[market_key]['short_token_address']
             (
                 short_pool_amount,
                 short_reserve_factor,
                 short_open_interest_reserve_factor
             ) = self.get_max_reserved_usd(
                 market_key,
-                short_token_address,
+                self.short_token_address,
                 False
             )
             short_precision = 10**(
-                30 + markets[market_key]['short_token_metadata']['decimals']
+                30 + self.markets[market_key]['short_token_metadata']['decimals']
             )
 
             # collate short side lists to iterate through
-            reserved_short_list = (
-                reserved_short_list + [open_interest['short'][market_symbol]]
+            reserved_short_list.append(
+                open_interest['short'][market_symbol]
             )
-            short_pool_amount_list = (
-                short_pool_amount_list + [short_pool_amount]
+            short_pool_amount_list.append(short_pool_amount)
+            short_reserve_factor_list.append(short_reserve_factor)
+            short_open_interest_reserve_factor_list.append(
+                short_open_interest_reserve_factor
             )
-            short_reserve_factor_list = (
-                short_reserve_factor_list + [short_reserve_factor]
-            )
-            short_open_interest_reserve_factor_list = (
-                short_open_interest_reserve_factor_list +
-                [short_open_interest_reserve_factor]
-            )
-            short_precision_list = short_precision_list + [short_precision]
+            short_precision_list.append(short_precision)
 
             # calculate token price
             prices = GetOraclePrices(chain=self.chain).get_recent_prices()
             oracle_precision = 10**(
-                30-markets[market_key]['long_token_metadata']['decimals']
+                30 - self.markets[market_key]['long_token_metadata']['decimals']
             )
 
             token_price = np.median(
@@ -204,7 +204,7 @@ class GetAvailableLiquidity:
             )
 
             # collate token price to iterate through
-            token_price_list = token_price_list + [token_price]
+            token_price_list.append(token_price)
 
         # TODO - Series of sleeps to stop ratelimit on the RPC, should have
         # retry
@@ -260,7 +260,7 @@ class GetAvailableLiquidity:
             long_precision_list,
             short_precision_list
         ):
-            print(token_symbol)
+            self.log.info("Token: {}".format(token_symbol))
 
             # select the lesser of maximum value of pool reserves or open
             # interest limit
@@ -277,11 +277,12 @@ class GetAvailableLiquidity:
 
             long_liquidity = long_max_reserved_usd - float(reserved_long)
 
-            print(
+            self.log.info(
                 "Available Long Liquidity: ${}".format(
                     numerize.numerize(long_liquidity)
                 )
             )
+
             available_liquidity['long'][token_symbol] = long_liquidity
 
             # select the lesser of maximum value of pool reserves or open
@@ -289,15 +290,16 @@ class GetAvailableLiquidity:
             if short_open_interest_reserve_factor < short_reserve_factor:
                 short_reserve_factor = short_open_interest_reserve_factor
 
-            short_max_reserved_usd = (short_pool_amount*short_reserve_factor)
+            short_max_reserved_usd = (short_pool_amount * short_reserve_factor)
 
             short_liquidity = (
                 short_max_reserved_usd / short_precision - float(
                     reserved_short
                 )
             )
-            print(
-                "Available Short Liquidity: ${}\n".format(
+
+            self.log.info(
+                "Available Short Liquidity: ${}".format(
                     numerize.numerize(short_liquidity)
                 )
             )
@@ -306,7 +308,9 @@ class GetAvailableLiquidity:
 
         return available_liquidity
 
-    def get_max_reserved_usd(self, market: str, token: str, is_long: bool):
+    def get_max_reserved_usd(self, market: str, token: str, is_long: bool) -> (
+        Tuple[Any, Any, Any]
+    ):
         """
         For a given market, long/short token and pool direction get the
         uncalled web3 functions to calculate pool size, pool reserve factor
@@ -314,23 +318,26 @@ class GetAvailableLiquidity:
 
         Parameters
         ----------
-        market : str
+        market: str
             contract address of GMX market.
-        token : str
+        token: str
             contract address of long or short token.
-        is_long : bool
+        is_long: bool
             pass True for long pool or False for short.
 
         Returns
         -------
-        pool_amount : web3.contract_obj
+        pool_amount: web3.contract_obj
             uncalled web3 contract object for pool amount.
-        reserve_factor : web3.contract_obj
+        reserve_factor: web3.contract_obj
             uncalled web3 contract object for pool reserve factor.
-        open_interest_reserve_factor : web3.contract_obj
+        open_interest_reserve_factor: web3.contract_obj
             uncalled web3 contract object for open interest reserve factor.
 
         """
+        pool_amount: Any  # Type: web3._utils.datatypes.getUint
+        reserve_factor: Any  # Type: web3._utils.datatypes.getUint
+        open_interest_reserve_factor: Any  # Type: web3._utils.datatypes.getUint
 
         # get web3 datastore object
         datastore = get_datastore_contract(self.chain)

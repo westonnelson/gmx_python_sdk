@@ -50,9 +50,12 @@ def check_if_approved(
 
     token_checksum_address = convert_to_checksum_address(chain, token_to_approve)
 
-    token_contract_abi = json.load(open(os.path.join(base_dir,
-                                                     'contracts',
-                                                     'token_approval.json')))
+    token_contract_abi = json.load(open(os.path.join(
+        base_dir,
+        'gmx_python_sdk',
+        'contracts',
+        'token_approval.json'
+    )))
 
     token_contract_obj = connection.eth.contract(address=token_to_approve,
                                                  abi=token_contract_abi)

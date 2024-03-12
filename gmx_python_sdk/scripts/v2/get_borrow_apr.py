@@ -1,3 +1,4 @@
+from .base import GetData
 from .get_oracle_prices import GetOraclePrices
 from .get_markets import GetMarkets
 from .gmx_utils import (
@@ -7,54 +8,13 @@ from .gmx_utils import (
 )
 
 
-class GetBorrowAPR:
+class GetBorrowAPR(GetData):
     def __init__(self, chain: str):
         self.reader_contract = None
         self.data_store_contract_address = None
         self.chain = chain
 
-    def get_borrow_apr(self, to_json: bool = False, to_csv: bool = False):
-        """
-        Call to get the borrow APR across all pools on a given chain defined
-        in class init. Pass either to_json or to_csv to save locally in
-        datastore
-
-        Parameters
-        ----------
-        to_json : bool, optional
-            save output to json file. The default is False.
-        to_csv : bool, optional
-            save out to csv file. The default is False.
-
-        Returns
-        -------
-        data : dict
-            dictionary of data.
-
-        """
-        data = self._borrow_apr()
-
-        if to_json:
-            save_json_file_to_datastore(
-                "{}_borrow_apr.json".format(self.chain),
-                data
-            )
-
-        if to_csv:
-            long_dataframe = make_timestamped_dataframe(data['long'])
-            short_dataframe = make_timestamped_dataframe(data['short'])
-            save_csv_to_datastore(
-                "{}_long_borrow_apr.csv".format(self.chain),
-                long_dataframe
-            )
-            save_csv_to_datastore(
-                "{}_short_borrow_apr.csv".format(self.chain),
-                short_dataframe
-            )
-        else:
-            return data
-
-    def _borrow_apr(self):
+    def _get_data_processing(self):
         """
         Generate the dictionary of borrow APR data
 
@@ -68,36 +28,28 @@ class GetBorrowAPR:
             contract_map[self.chain]['datastore']['contract_address']
         )
 
-        markets = GetMarkets(chain=self.chain).get_available_markets()
-
         output_list = []
         mapper = []
-        for market_key in markets:
+        for market_key in self._markets.info:
+            index_token_address = self._markets.get_index_token_address(
+                market_key
+            )
 
-            index_token_address = markets[market_key]['index_token_address']
             if (
                 index_token_address ==
                 "0x0000000000000000000000000000000000000000"
             ):
                 continue
 
-            long_token_address = markets[market_key]['long_token_address']
-            short_token_address = markets[market_key]['short_token_address']
-
-            output = self._make_market_info_query(
+            self._get_token_addresses(market_key)
+            output = self._get_oracle_prices(
                 market_key,
                 index_token_address,
-                long_token_address,
-                short_token_address
             )
 
-            # add the uncalled web3 object to list
-            output_list = output_list + [output]
+            output_list.append([output])
+            mapper.append(self._markets.get_market_symbol(market_key))
 
-            # add the market symbol to a list to use to map to dictionary later
-            mapper = mapper + [markets[market_key]['market_symbol']]
-
-        # feed the uncalled web3 objects into threading function
         threaded_output = execute_threading(output_list)
 
         borrow_apr_dict = {
@@ -106,6 +58,7 @@ class GetBorrowAPR:
             "short": {
             }
         }
+
         for key, output in zip(mapper, threaded_output):
             borrow_apr_dict["long"][key] = (
                 output[1] / 10 ** 28
@@ -114,7 +67,7 @@ class GetBorrowAPR:
                 output[2] / 10 ** 28
             ) * 3600
 
-            print(
+            self.log.info(
                 (
                     "{}\nLong Borrow Hourly Rate: -{:.5f}%\n"
                     "Short Borrow Hourly Rate: -{:.5f}%\n"
@@ -125,99 +78,6 @@ class GetBorrowAPR:
                 )
             )
         return borrow_apr_dict
-
-    # TODO - could potentially just pass market here and call each of the
-    # variables within method
-    def _make_market_info_query(
-        self,
-        market_key,
-        index_token_address,
-        long_token_address,
-        short_token_address
-    ):
-        """
-        For a given market get the marketInfo from the reader contract
-
-        Parameters
-        ----------
-        market_key : str
-            address of GMX market.
-        index_token_address : str
-            address of index token.
-        long_token_address : str
-            address of long collateral token.
-        short_token_address : str
-            address of short collateral token.
-
-        Returns
-        -------
-        reader_contract object
-            unexecuted reader contract object.
-
-        """
-
-        reader_contract = get_reader_contract(chain=self.chain)
-
-        oracle_prices_dict = GetOraclePrices(
-            chain=self.chain
-        ).get_recent_prices()
-        try:
-            prices = (
-                (
-                    int(
-                        oracle_prices_dict[index_token_address]['minPriceFull']
-                    ),
-                    int(
-                        oracle_prices_dict[index_token_address]['maxPriceFull']
-                    )
-                ),
-                (
-                    int(
-                        oracle_prices_dict[long_token_address]['minPriceFull']
-                    ),
-                    int(
-                        oracle_prices_dict[long_token_address]['maxPriceFull']
-                    )
-                ),
-                (
-                    int(
-                        oracle_prices_dict[short_token_address]['minPriceFull']
-                    ),
-                    int(
-                        oracle_prices_dict[short_token_address]['maxPriceFull']
-                    )
-                ))
-
-        # TODO - this needs to be here until GMX add stables to signed price
-        # API
-        except KeyError:
-            prices = (
-                (
-                    int(
-                        oracle_prices_dict[index_token_address]['minPriceFull']
-                    ),
-                    int(
-                        oracle_prices_dict[index_token_address]['maxPriceFull']
-                    )
-                ),
-                (
-                    int(
-                        oracle_prices_dict[long_token_address]['minPriceFull']
-                    ),
-                    int(
-                        oracle_prices_dict[long_token_address]['maxPriceFull']
-                    )
-                ),
-                (
-                    int(1000000000000000000000000),
-                    int(1000000000000000000000000)
-                ))
-
-        return reader_contract.functions.getMarketInfo(
-            self.data_store_contract_address,
-            prices,
-            market_key
-        )
 
 
 if __name__ == "__main__":
