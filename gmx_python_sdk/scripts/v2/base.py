@@ -2,6 +2,7 @@ import logging
 
 from .get_markets import Markets
 from .get_oracle_prices import GetOraclePrices
+from .gmx_utils import get_reader_contract, contract_map, save_json_file_to_datastore, save_csv_to_datastore
 
 
 class GetData:
@@ -10,7 +11,16 @@ class GetData:
         self.use_local_datastore = use_local_datastore
 
         self.log = logging.getLogger(self.__class__.__name__)
-        self._markets = Markets(self.chain)
+        self.markets = Markets(self.chain)
+        self.reader_contract = get_reader_contract(self.chain)
+        self.data_store_contract_address = (
+            contract_map[self.chain]['datastore']['contract_address']
+        )
+        self.output = {
+            "long": {},
+            "short": {}
+        }
+
         self._long_token_address = None
         self._short_token_address = None
 
@@ -18,13 +28,13 @@ class GetData:
         data = self._get_data_processing()
 
         if to_json:
-            self._save_json_file_to_datastore(
+            save_json_file_to_datastore(
                 "{}_data.json".format(self.chain),
                 data
             )
 
         if to_csv:
-            self._save_csv_to_datastore(
+            save_csv_to_datastore(
                 "{}_data.csv".format(self.chain),
                 data
             )
@@ -48,7 +58,7 @@ class GetData:
         )
 
     def _filter_swap_markets(self, market_key: str):
-        market_symbol = self._markets[market_key]['market_symbol']
+        market_symbol = self.markets[market_key]['market_symbol']
         if 'swap' in market_symbol:
             # Remove swap markets from dict
             self.markets.info.pop(market_key)

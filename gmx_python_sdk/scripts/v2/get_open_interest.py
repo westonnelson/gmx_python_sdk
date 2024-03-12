@@ -7,7 +7,7 @@ from .gmx_utils import (
     save_csv_to_datastore
 )
 from .get_oracle_prices import GetOraclePrices
-from .get_markets import GetMarkets
+from .get_markets_legacy import GetMarkets
 
 
 class OpenInterest:
