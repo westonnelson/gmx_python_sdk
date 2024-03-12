@@ -19,15 +19,11 @@ class GetBorrowAPR(GetData):
         output_list = []
         mapper = []
         for market_key in self.markets.info:
+            self._filter_swap_markets(market_key)
+
             index_token_address = self.markets.get_index_token_address(
                 market_key
             )
-
-            if (
-                index_token_address ==
-                "0x0000000000000000000000000000000000000000"
-            ):
-                continue
 
             self._get_token_addresses(market_key)
             output = self._get_oracle_prices(

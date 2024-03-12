@@ -22,6 +22,19 @@ class Markets:
     def get_market_symbol(self, market_key: str) -> str:
         return self.info[market_key]['market_symbol']
 
+    def get_decimal_factor(
+        self, market_key: str, long: bool = False, short: bool = False
+    ) -> int:
+        if long:
+            return self.info[market_key]['long_token_metadata']['decimals']
+        elif short:
+            return self.info[market_key]['short_token_metadata']['decimals']
+        else:
+            return self.info[market_key]['market_metadata']['decimals']
+
+    def is_synthetic(self, market_key: str) -> bool:
+        return self.info[market_key]['market_metadata']['synthetic']
+
     def get_available_markets(self):
         """
         Get the available markets on a given chain

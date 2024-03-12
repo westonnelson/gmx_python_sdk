@@ -6,9 +6,10 @@ from .gmx_utils import get_reader_contract, contract_map, save_json_file_to_data
 
 
 class GetData:
-    def __init__(self, chain: str, use_local_datastore: bool = False):
+    def __init__(self, chain: str, use_local_datastore: bool = False, filter_swap_markets: bool = True):
         self.chain = chain
         self.use_local_datastore = use_local_datastore
+        self.filter_swap_markets = filter_swap_markets
 
         self.log = logging.getLogger(self.__class__.__name__)
         self.markets = Markets(self.chain)
@@ -25,6 +26,9 @@ class GetData:
         self._short_token_address = None
 
     def get_data(self, to_json: bool = False, to_csv: bool = False):
+        if self.filter_swap_markets:
+            self._filter_swap_markets()
+
         data = self._get_data_processing()
 
         if to_json:
@@ -45,11 +49,11 @@ class GetData:
         pass
 
     def _get_token_addresses(self, market_key: str):
-        self._long_token_address = (
-            self.markets.info[market_key]['long_token_address']
+        self._long_token_address = self.markets.get_long_token_address(
+            market_key
         )
-        self._short_token_address = (
-            self.markets.info[market_key]['short_token_address']
+        self._short_token_address = self.markets.get_short_token_address(
+            market_key
         )
         self.log.info(
             "Long Token Address: {}\nShort Token Address: {}".format(
@@ -57,13 +61,16 @@ class GetData:
             )
         )
 
-    def _filter_swap_markets(self, market_key: str):
-        market_symbol = self.markets[market_key]['market_symbol']
-        if 'swap' in market_symbol:
-            # Remove swap markets from dict
-            self.markets.info.pop(market_key)
-            return True
-        return False
+    def _filter_swap_markets(self):
+        # TODO: Move to markets
+        keys_to_remove = []
+        for market_key in self.markets.info:
+            market_symbol = self.markets.get_market_symbol(market_key)
+            if 'SWAP' in market_symbol:
+                # Remove swap markets from dict
+                keys_to_remove.append(market_key)
+
+        [self.markets.info.pop(k) for k in keys_to_remove]
 
     def _get_oracle_prices(
         self,

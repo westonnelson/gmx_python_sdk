@@ -56,13 +56,6 @@ class GetFundingFee(GetData):
             )
             self._get_token_addresses(market_key)
 
-            # if index address is 0 address, it is a swap market
-            if (
-                index_token_address ==
-                "0x0000000000000000000000000000000000000000"
-            ):
-                continue
-
             output = self._get_oracle_prices(
                 market_key,
                 index_token_address,

@@ -1,61 +1,16 @@
 import time
 from numerize import numerize
 
-from .gmx_utils import (
-    contract_map, get_reader_contract, execute_threading,
-    save_json_file_to_datastore, make_timestamped_dataframe,
-    save_csv_to_datastore
-)
+from .base import GetData
+from .gmx_utils import execute_threading
 from .get_oracle_prices import GetOraclePrices
-from .get_markets_legacy import GetMarkets
 
 
-class OpenInterest:
+class OpenInterest(GetData):
     def __init__(self, chain: str):
-        self.chain = chain
+        super().__init__(chain)
 
-    def call_open_interest(self, to_json: bool = False, to_csv: bool = False):
-        """
-        Call to get the open interest across all pools on a given chain
-        defined in class init. Pass either to_json or to_csv to save locally
-        in datastore
-
-        Parameters
-        ----------
-        to_json : bool, optional
-            save output to json file. The default is False.
-        to_csv : bool, optional
-            save out to csv file. The default is False.
-
-        Returns
-        -------
-        data : dict
-            dictionary of data.
-
-        """
-        data = self._get_open_interest()
-
-        if to_json:
-            save_json_file_to_datastore(
-                "{}_open_interest.json".format(self.chain),
-                data
-            )
-
-        if to_csv:
-            long_dataframe = make_timestamped_dataframe(data['long'])
-            short_dataframe = make_timestamped_dataframe(data['short'])
-            save_csv_to_datastore(
-                "{}_long_open_interest.csv".format(self.chain),
-                long_dataframe
-            )
-            save_csv_to_datastore(
-                "{}_short_open_interest.csv".format(self.chain),
-                short_dataframe
-            )
-        else:
-            return data
-
-    def _get_open_interest(self):
+    def _get_data_processing(self):
         """
         Generate the dictionary of open interest data
 
@@ -65,19 +20,10 @@ class OpenInterest:
             dictionary of open interest data.
 
         """
-        reader_contract = get_reader_contract(self.chain)
-        data_store_contract_address = (
-            contract_map[self.chain]['datastore']['contract_address']
-        )
-        markets = GetMarkets(chain=self.chain).get_available_markets()
         oracle_prices_dict = GetOraclePrices(
             chain=self.chain
         ).get_recent_prices()
         print("GMX v2 Open Interest\n")
-        open_interest = {
-            "long": {},
-            "short": {},
-        }
 
         long_oi_output_list = []
         short_oi_output_list = []
@@ -86,72 +32,74 @@ class OpenInterest:
         mapper = []
         long_precision_list = []
 
-        for market_key in markets:
+        for market_key in self.markets.info:
             # Skip swap markets
-            if "SWAP" in markets[market_key]['market_symbol']:
-                continue
+            self._get_token_addresses(market_key)
+
+            index_token_address = self.markets.get_index_token_address(
+                market_key
+            )
 
             market = [
                 market_key,
-                markets[market_key]['index_token_address'],
-                markets[market_key]['long_token_address'],
-                markets[market_key]['short_token_address']
+                index_token_address,
+                self._long_token_address,
+                self._short_token_address
             ]
+
             prices_list = [
                 int(
                     oracle_prices_dict[
-                        markets[market_key]['index_token_address']
+                        index_token_address
                     ]['minPriceFull']
                 ),
                 int(
                     oracle_prices_dict[
-                        markets[market_key]['index_token_address']
+                        index_token_address
                     ]['maxPriceFull']
                 )
             ]
 
-            decimal_factor = (
-                markets[market_key]['long_token_metadata']['decimals']
-            )
-
             # If the market is a synthetic one we need to use the decimals
             # from the index token
             try:
-                if markets[market_key]['market_metadata']['synthetic']:
-                    decimal_factor = (
-                        markets[market_key]['market_metadata']['decimals']
+                if self.markets.is_synthetic(market_key):
+                    decimal_factor = self.markets.get_decimal_factor(
+                        market_key,
+                    )
+                else:
+                    decimal_factor = self.markets.get_decimal_factor(
+                        market_key,
+                        long=True
                     )
             except KeyError:
                 pass
 
-            oracle_factor = (
-                30 - markets[market_key]['market_metadata']['decimals']
-            )
-
+            oracle_factor = (30 - decimal_factor)
             precision = 10 ** (decimal_factor + oracle_factor)
             long_precision_list = long_precision_list + [precision]
 
             long_oi_with_pnl, long_pnl = self.make_query(
-                reader_contract,
-                data_store_contract_address,
+                self.reader_contract,
+                self.data_store_contract_address,
                 market,
                 prices_list,
                 is_long=True
             )
 
             short_oi_with_pnl, short_pnl = self.make_query(
-                reader_contract,
-                data_store_contract_address,
+                self.reader_contract,
+                self.data_store_contract_address,
                 market,
                 prices_list,
                 is_long=False
             )
 
-            long_oi_output_list = long_oi_output_list + [long_oi_with_pnl]
-            short_oi_output_list = short_oi_output_list + [short_oi_with_pnl]
-            long_pnl_output_list = long_pnl_output_list + [long_pnl]
-            short_pnl_output_list = short_pnl_output_list + [short_pnl]
-            mapper = mapper + [markets[market_key]['market_symbol']]
+            long_oi_output_list.append(long_oi_with_pnl)
+            short_oi_output_list.append(short_oi_with_pnl)
+            long_pnl_output_list.append(long_pnl)
+            short_pnl_output_list.append(short_pnl)
+            mapper.append(self.markets.get_market_symbol(market_key))
 
         # TODO - currently just waiting x amount of time to not hit rate limit,
         # but needs a retry
@@ -185,7 +133,7 @@ class OpenInterest:
                 )
             )
 
-            open_interest['long'][market_symbol] = (
+            self.output['long'][market_symbol] = (
                 long_oi - long_pnl
             ) / long_precision
 
@@ -197,11 +145,11 @@ class OpenInterest:
                     ((short_oi - short_pnl) / precision))
                 )
             )
-            open_interest['short'][market_symbol] = (
+            self.output['short'][market_symbol] = (
                 short_oi - short_pnl
             ) / precision
 
-        return open_interest
+        return self.output
 
     def make_query(
         self,
@@ -257,4 +205,4 @@ class OpenInterest:
 
 
 if __name__ == '__main__':
-    data = OpenInterest(chain="arbitrum").call_open_interest(to_csv=False)
+    data = OpenInterest(chain="arbitrum").get_data(to_csv=False)
