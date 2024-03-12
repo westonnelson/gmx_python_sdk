@@ -49,11 +49,12 @@ class GetFundingFee(GetData):
         short_interest_usd_list = []
 
         # loop markets
-        for market_key in self.markets:
+        for market_key in self.markets.info:
             symbol = self.markets.get_market_symbol(market_key)
             index_token_address = self.markets.get_index_token_address(
                 market_key
             )
+            self._get_token_addresses(market_key)
 
             # if index address is 0 address, it is a swap market
             if (
