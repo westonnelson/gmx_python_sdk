@@ -2,8 +2,12 @@ from utils import _set_paths
 
 _set_paths()
 
-from gmx_python_sdk.scripts.v2.create_withdrawal_order import WithdrawOrder
-from gmx_python_sdk.scripts.v2.liquidity_argument_parser import LiquidityArgumentParser
+from gmx_python_sdk.scripts.v2.order.create_withdrawal_order import (
+    WithdrawOrder
+)
+from gmx_python_sdk.scripts.v2.liquidity_argument_parser import (
+    LiquidityArgumentParser
+)
 
 
 parameters = {

@@ -1,14 +1,15 @@
 import numpy as np
 
-from .gmx_utils import get_token_balance_contract, save_json_file_to_datastore
-from .get_markets import GetMarkets
-from .get_oracle_prices import GetOraclePrices
+from .get import GetData
+from .get_markets import Markets
+from .get_oracle_prices import OraclePrices
+from ..gmx_utils import get_token_balance_contract, save_json_file_to_datastore
 
 
-class GetPoolTVL:
+class GetPoolTVL(GetData):
     def __init__(self, chain):
-        self.chain = chain
-        self.oracle_prices_dict = GetOraclePrices(
+        super().__init__(chain)
+        self.oracle_prices_dict = OraclePrices(
             chain=chain
         ).get_recent_prices
 
@@ -27,7 +28,7 @@ class GetPoolTVL:
             dictionary of total USD value per pool.
 
         """
-        markets = GetMarkets(chain=self.chain).get_available_markets()
+        markets = Markets(chain=self.chain).get_available_markets()
         pool_tvl_dict = {}
 
         for market in markets:
@@ -161,4 +162,4 @@ class GetPoolTVL:
 if __name__ == "__main__":
     # chain = sys.argv[1]
     # chain = 'arbitrum'
-    pool_dict = GetPoolTVL(chain='arbitrum').get_pool_balances(to_json=False)
+    pool_dict = GetPoolTVL(chain='arbitrum').get_data(to_json=False)

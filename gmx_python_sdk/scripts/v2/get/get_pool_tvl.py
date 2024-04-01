@@ -1,18 +1,18 @@
 import numpy as np
 
-from .keys import pool_amount_key
-from .gmx_utils import (
+from .get_markets import Markets
+from .get_oracle_prices import OraclePrices
+from ..keys import pool_amount_key
+from ..gmx_utils import (
     get_datastore_contract, save_json_file_to_datastore,
     make_timestamped_dataframe, save_csv_to_datastore
 )
-from .get_markets import GetMarkets
-from .get_oracle_prices import GetOraclePrices
 
 
 class GetPoolTVL:
     def __init__(self, chain: str):
         self.chain = chain
-        self.oracle_prices_dict = GetOraclePrices(
+        self.oracle_prices_dict = OraclePrices(
             chain=chain
         ).get_recent_prices
 
@@ -34,7 +34,7 @@ class GetPoolTVL:
             dictionary of data.
 
         """
-        markets = GetMarkets(chain=self.chain).get_available_markets()
+        markets = Markets(chain=self.chain).get_available_markets()
         pool_tvl_dict = {
             "total_tvl": {},
             "long_token": {},

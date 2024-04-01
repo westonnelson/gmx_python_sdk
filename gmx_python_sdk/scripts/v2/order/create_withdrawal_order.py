@@ -1,12 +1,12 @@
-from .order import Order
-from .gas_utils import get_gas_limits
-from .gmx_utils import (get_datastore_contract)
+from .withdraw import Withdraw
+from ..gas_utils import get_gas_limits
+from ..gmx_utils import get_datastore_contract
 
 
-class IncreaseOrder(Order):
+class WithdrawOrder(Withdraw):
     """
-    Open a buy order
-    Extends base Order class
+    Open a withdrawal order
+    Extends base Withdraw class
     """
 
     def __init__(self, *args: list, **kwargs: dict) -> None:
@@ -14,10 +14,11 @@ class IncreaseOrder(Order):
             *args, **kwargs
         )
 
-        # Open an order
-        self.order_builder(is_open=True)
+        # Open a withdrawal order
+        self.create_withdraw_order()
 
     def determine_gas_limits(self):
+
         datastore = get_datastore_contract(self.chain)
         self._gas_limits = get_gas_limits(datastore)
         self._gas_limits_order_type = self._gas_limits["increase_order"]

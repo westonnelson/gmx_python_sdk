@@ -1,23 +1,20 @@
 import logging
 import numpy as np
 
-from .gmx_utils import (
-    get_reader_contract, contract_map, get_tokens_address_dict,
-    convert_to_checksum_address
-)
-from .get_markets import GetMarkets
-from .get_oracle_prices import GetOraclePrices
+from .get import GetData
+from .get_oracle_prices import OraclePrices
+
+from ..gmx_utils import ( get_tokens_address_dict, convert_to_checksum_address)
 
 chain = 'arbitrum'
 
 
-class GetOpenPositions:
-    def __init__(self, chain):
-        self.chain = chain
-        self.markets = GetMarkets(chain=chain).get_available_markets()
-        self.reader_contract = get_reader_contract(chain)
+class GetOpenPositions(GetData):
+    def __init__(self, chain: str, address: str):
+        super().__init__(chain)
+        self.address = convert_to_checksum_address(self.chain, address)
 
-    def get_positions(self, address: str):
+    def get_data(self):
         """
         Get all open positions for a given address on the chain defined in
         class init
@@ -34,9 +31,13 @@ class GetOpenPositions:
             direction are the keys.
 
         """
-        address = convert_to_checksum_address(self.chain, address)
+        raw_positions = self.reader_contract.functions.getAccountPositions(
+            self.data_store_contract_address,
+            self.address,
+            0,
+            10
+        ).call()
 
-        raw_positions = self. _query_for_positions(address)
         if len(raw_positions) == 0:
             logging.info(
                 'No positions open for address: "{}"" on {}.'.format(
@@ -47,7 +48,7 @@ class GetOpenPositions:
         processed_positions = {}
 
         for raw_position in raw_positions:
-            processed_position = self._process_positon(raw_position)
+            processed_position = self._get_data_processing(raw_position)
 
             # TODO - maybe a better way of building the key?
             if processed_position['is_long']:
@@ -63,7 +64,7 @@ class GetOpenPositions:
 
         return processed_positions
 
-    def _process_positon(self, raw_position: tuple):
+    def _get_data_processing(self, raw_position: tuple):
         """
         A tuple containing the raw information return from the reader contract
         query GetAccountPositions
@@ -78,7 +79,7 @@ class GetOpenPositions:
         dict
             a processed dictionary containing info on the positions.
         """
-        market_info = self.markets[raw_position[0][1]]
+        market_info = self.markets.info[raw_position[0][1]]
 
         chain_tokens = get_tokens_address_dict(chain)
 
@@ -95,7 +96,7 @@ class GetOpenPositions:
                 raw_position[0][2]
             ]['decimals']
         )
-        prices = GetOraclePrices(chain=chain).get_recent_prices()
+        prices = OraclePrices(chain=chain).get_recent_prices()
         mark_price = np.median(
             [
                 float(
@@ -112,7 +113,9 @@ class GetOpenPositions:
         return {
             "account": raw_position[0][0],
             "market": raw_position[0][1],
-            "market_symbol": self.markets[raw_position[0][1]]['market_symbol'],
+            "market_symbol": (
+                self.markets.info[raw_position[0][1]]['market_symbol'],
+            ),
             "collateral_token": chain_tokens[raw_position[0][2]]['symbol'],
             "position_size": raw_position[1][0]/10**30,
             "size_in_tokens": raw_position[1][1],
@@ -145,46 +148,10 @@ class GetOpenPositions:
             "mark_price": mark_price
         }
 
-    def _query_for_positions(
-        self, address: str, start: int = 0, end: int = 10
-    ):
-        """
-        For a given evm address call the getAccountPositions function from
-        the reader contract to return positions for a given start and end
-        position
-
-        Parameters
-        ----------
-        address : str
-            evm address .
-        start: int
-            location of first position to fetch, default is 0
-        end: int
-            location of last position to fetch, default is 10
-
-        Returns
-        -------
-        tuple
-            a tuple of raw positions info currently open for the given address.
-
-        """
-
-        reader_contract = get_reader_contract(self.chain)
-        data_store_contract_address = (
-            contract_map[self.chain]['datastore']['contract_address']
-        )
-
-        return reader_contract.functions.getAccountPositions(
-            data_store_contract_address,
-            address,
-            start,
-            end
-        ).call()
-
 
 if __name__ == "__main__":
     address = "0x99f5585dcc32e2238634f11f32d9be9bd5e98b49"
-    positions = GetOpenPositions(chain='arbitrum').get_positions(address)
+    positions = GetOpenPositions(chain='arbitrum', address=address).get_data()
 
     for position in positions:
         print(positions[position])

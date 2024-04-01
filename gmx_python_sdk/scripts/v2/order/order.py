@@ -4,16 +4,16 @@ import numpy as np
 from hexbytes import HexBytes
 from web3 import Web3
 
-from .get_markets import GetMarkets
-from .get_oracle_prices import GetOraclePrices
-from .gmx_utils import (
+from .get.get_markets import Markets
+from .get.get_oracle_prices import OraclePrices
+from ..gmx_utils import (
     get_exchange_router_contract, create_connection, get_config, contract_map,
     PRECISION, get_execution_price_and_price_impact, order_type as order_types,
     decrease_position_swap_type as decrease_position_swap_types,
     convert_to_checksum_address
 )
-from .gas_utils import get_execution_fee
-from .approve_token_for_spend import check_if_approved
+from ..gas_utils import get_execution_fee
+from ..approve_token_for_spend import check_if_approved
 
 
 class Order:
@@ -190,9 +190,9 @@ class Order:
             # 20% buffer
             execution_fee = int(execution_fee * 1.2)
 
-        markets = GetMarkets(chain=self.chain).get_available_markets()
+        markets = Markets(chain=self.chain).get_available_markets()
         initial_collateral_delta_amount = self.initial_collateral_delta_amount
-        prices = GetOraclePrices(chain=self.chain).get_recent_prices()
+        prices = OraclePrices(chain=self.chain).get_recent_prices()
         size_delta_price_price_impact = self.size_delta
 
         # when decreasing size delta must be negative

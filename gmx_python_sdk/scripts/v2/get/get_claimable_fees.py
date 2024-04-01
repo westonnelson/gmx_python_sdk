@@ -2,55 +2,17 @@ import numpy as np
 
 from numerize import numerize
 
-from .get_markets import GetMarkets
-from .gmx_utils import (
-    execute_threading, make_timestamped_dataframe, save_csv_to_datastore
-)
-from .get_oracle_prices import GetOraclePrices
-from .keys import get_datastore_contract, claimable_fee_amount_key
+from .get import GetData
+from .get_oracle_prices import OraclePrices
+from ..gmx_utils import execute_threading
+from ..keys import get_datastore_contract, claimable_fee_amount_key
 
 
-class GetClaimableFees:
+class GetClaimableFees(GetData):
     def __init__(self, chain: str):
-        self.chain = chain
+        super().__init__(chain)
 
-    def get_claimable_fees(self, to_json: bool = False, to_csv: bool = False):
-        """
-        Call to get the claimable fees across all pools on a given chain
-        defined in class init. Pass either to_json or to_csv to save locally in
-        datastore
-
-        Parameters
-        ----------
-        to_json : bool, optional
-            save output to json file. The default is False.
-        to_csv : bool, optional
-            save out to csv file. The default is False.
-
-        Returns
-        -------
-        data : dict
-            dictionary of data.
-
-        """
-
-        data = self._claimable_fees()
-
-        if to_json:
-            self.save_json_file_to_datastore(
-                "{}_claimable_fees.json".format(self.chain),
-                data
-            )
-        if to_csv:
-            dataframe = make_timestamped_dataframe(data)
-            save_csv_to_datastore(
-                "{}_total_fees.csv".format(self.chain),
-                dataframe
-            )
-        else:
-            return data
-
-    def _claimable_fees(self):
+    def _get_data_processing(self):
         """
         Get total fees dictionary
 
@@ -60,68 +22,58 @@ class GetClaimableFees:
             dictionary of total fees for week so far.
 
         """
-        markets = GetMarkets(chain=self.chain).get_available_markets()
-
         total_fees = 0
-
         long_output_list = []
         short_output_list = []
         long_precision_list = []
         long_token_price_list = []
         mapper = []
 
-        for market_key in markets:
-            # TODO - currently filtering out swap markets
-            market_symbol = markets[market_key]['market_symbol']
-            if "SWAP" in market_symbol:
-                continue
-
-            long_token_address = markets[market_key]['long_token_address']
-            short_token_address = markets[market_key]['short_token_address']
+        for market_key in self.markets.info:
+            self._filter_swap_markets()
+            self._get_token_addresses(market_key)
+            market_symbol = self.markets.get_market_symbol(market_key)
+            long_decimal_factor = self.markets.get_decimal_factor(
+                market_key=market_key,
+                long=True,
+                short=False
+            )
+            long_precision = 10**(long_decimal_factor - 1)
+            oracle_precision = 10**(30 - long_decimal_factor)
 
             # uncalled web3 object for long fees
             long_output = self._get_claimable_fee_amount(
                 market_key,
-                long_token_address
+                self._long_token_address
             )
 
-            prices = GetOraclePrices(chain=self.chain).get_recent_prices()
-            oracle_precision = 10 ** (
-                30-markets[market_key]['long_token_metadata']['decimals']
-            )
+            prices = OraclePrices(chain=self.chain).get_recent_prices()
             long_token_price = np.median(
                 [
                     float(
-                        prices[long_token_address]['maxPriceFull']
+                        prices[self._long_token_address]['maxPriceFull']
                     ) / oracle_precision,
                     float(
-                        prices[long_token_address]['minPriceFull']
+                        prices[self._long_token_address]['minPriceFull']
                     ) / oracle_precision
                 ]
             )
 
-            long_token_price_list = long_token_price_list + [long_token_price]
-
-            long_precision = 10**(
-                markets[market_key]['long_token_metadata']['decimals']-1
-            )
-
-            long_precision_list = long_precision_list + [long_precision]
+            long_token_price_list.append(long_token_price)
+            long_precision_list.append(long_precision)
 
             # uncalled web3 object for short fees
             short_output = self._get_claimable_fee_amount(
                 market_key,
-                short_token_address
+                self._short_token_address
             )
 
-            # add the uncalled web3 object to list
+            # add the uncalled web3 objects to list
             long_output_list = long_output_list + [long_output]
-
-            # add the uncalled web3 object to list
             short_output_list = short_output_list + [short_output]
 
             # add the market symbol to a list to use to map to dictionary later
-            mapper = mapper + [markets[market_key]['market_symbol']]
+            mapper.append(market_symbol)
 
         # feed the uncalled web3 objects into threading function
         long_threaded_output = execute_threading(long_output_list)
@@ -149,15 +101,16 @@ class GetClaimableFees:
             # 6 decimals
             short_claimable_usd = short_claimable_fees / (10 ** 6)
 
-            print(token_symbol)
-            print(
-                "Long Claimable Fees: ${}".format(
-                    numerize.numerize(long_claimable_usd)
-                )
+            self.log.info(f"Token: {token_symbol}")
+
+            self.log.info(
+                f"""Long Claimable Fees:
+                 ${numerize.numerize(long_claimable_usd)}"""
             )
 
-            print("Short Claimable Fees: ${}\n".format(
-                numerize.numerize(short_claimable_usd))
+            self.log.info(
+                f"""Short Claimable Fees:
+                 ${numerize.numerize(short_claimable_usd)}"""
             )
 
             total_fees += long_claimable_usd + short_claimable_usd
@@ -201,4 +154,4 @@ class GetClaimableFees:
 
 
 if __name__ == "__main__":
-    data = GetClaimableFees(chain="arbitrum").get_claimable_fees(to_csv=True)
+    data = GetClaimableFees(chain="arbitrum").get_data(to_csv=True)

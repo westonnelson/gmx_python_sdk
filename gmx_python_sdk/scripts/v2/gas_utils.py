@@ -1,6 +1,9 @@
-from .keys import decrease_order_gas_limit_key, increase_order_gas_limit_key, \
-    execution_gas_fee_base_amount_key, execution_gas_fee_multiplier_key, single_swap_gas_limit_key, \
-    swap_order_gas_limit_key, deposit_gas_limit_key, withdraw_gas_limit_key
+from .keys import (
+    decrease_order_gas_limit_key, increase_order_gas_limit_key,
+    execution_gas_fee_base_amount_key, execution_gas_fee_multiplier_key,
+    single_swap_gas_limit_key, swap_order_gas_limit_key, deposit_gas_limit_key,
+    withdraw_gas_limit_key
+)
 
 from .gmx_utils import apply_factor, get_datastore_contract, create_connection
 

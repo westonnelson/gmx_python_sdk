@@ -1,9 +1,9 @@
 import json
 import os
 
-from .base import GetData
+from .get import GetData
 from .get_open_interest import OpenInterest
-from .gmx_utils import (
+from ..gmx_utils import (
     get_funding_factor_per_period, base_dir, execute_threading,
 )
 

@@ -1,7 +1,7 @@
 import numpy as np
 
-from .get_markets import GetMarkets
-from .get_oracle_prices import GetOraclePrices
+from .get.get_markets import Markets
+from .get.get_oracle_prices import OraclePrices
 
 from .gmx_utils import get_tokens_address_dict
 
@@ -126,7 +126,7 @@ class LiquidityArgumentParser:
 
         # use the index token address to find the market key from get_available_markets
         self.parameters_dict['market_key'] = self.find_market_key_by_index_address(
-            GetMarkets(chain=self.parameters_dict['chain']).get_available_markets(),
+            Markets(chain=self.parameters_dict['chain']).get_available_markets(),
             index_token_address
         )
 
@@ -201,7 +201,7 @@ class LiquidityArgumentParser:
             out_token_symbol
         )
 
-        markets = GetMarkets(chain=self.parameters_dict['chain']).get_available_markets()
+        markets = Markets(chain=self.parameters_dict['chain']).get_available_markets()
         market = markets[self.parameters_dict['market_key']]
 
         if out_token_symbol == "BTC":
@@ -221,7 +221,7 @@ class LiquidityArgumentParser:
         if self.parameters_dict["long_token_address"] is None:
             self.parameters_dict["long_token_amount"] = 0
             return
-        prices = GetOraclePrices(chain=self.parameters_dict['chain']).get_recent_prices()
+        prices = OraclePrices(chain=self.parameters_dict['chain']).get_recent_prices()
         price = np.median(
             [float(prices[self.parameters_dict["long_token_address"]]['maxPriceFull']),
              float(prices[self.parameters_dict["long_token_address"]]['minPriceFull'])]
@@ -246,7 +246,7 @@ class LiquidityArgumentParser:
             self.parameters_dict["short_token_amount"] = 0
             return
 
-        prices = GetOraclePrices(chain=self.parameters_dict['chain']).get_recent_prices()
+        prices = OraclePrices(chain=self.parameters_dict['chain']).get_recent_prices()
         price = np.median(
             [float(prices[self.parameters_dict["short_token_address"]]['maxPriceFull']),
              float(prices[self.parameters_dict["short_token_address"]]['minPriceFull'])]

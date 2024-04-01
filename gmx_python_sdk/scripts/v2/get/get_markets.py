@@ -1,8 +1,8 @@
-from .gmx_utils import (
+from ..gmx_utils import (
     contract_map, get_tokens_address_dict, get_reader_contract
 )
 
-from .get_oracle_prices import GetOraclePrices
+from .get_oracle_prices import OraclePrices
 
 
 class Markets:
@@ -85,8 +85,11 @@ class Markets:
         for raw_market in raw_markets:
             try:
 
-                if not self._check_if_index_token_in_signed_prices_api(raw_market[1]):
+                if not self._check_if_index_token_in_signed_prices_api(
+                    raw_market[1]
+                ):
                     continue
+
                 decoded_markets[raw_market[0]] = {
                     'gmx_market_address': raw_market[0],
                     'market_symbol': (
@@ -103,8 +106,11 @@ class Markets:
             # If KeyError it is because there is no market symbol and it is a
             # swap market
             except KeyError:
-                if not self._check_if_index_token_in_signed_prices_api(raw_market[1]):
+                if not self._check_if_index_token_in_signed_prices_api(
+                    raw_market[1]
+                ):
                     continue
+
                 decoded_markets[raw_market[0]] = {
                     'gmx_market_address': raw_market[0],
                     'market_symbol': 'SWAP {}-{}'.format(
@@ -127,7 +133,7 @@ class Markets:
     def _check_if_index_token_in_signed_prices_api(self, index_token_address):
 
         try:
-            prices = GetOraclePrices(chain=self.chain).get_recent_prices()
+            prices = OraclePrices(chain=self.chain).get_recent_prices()
 
             if index_token_address == "0x0000000000000000000000000000000000000000":
                 return True
@@ -140,6 +146,6 @@ class Markets:
 
 
 if __name__ == '__main__':
-    raw_markets = GetMarkets(
+    raw_markets = Markets(
         chain="arbitrum"
-    ).get_available_markets(clean=False)
+    ).get_available_markets()

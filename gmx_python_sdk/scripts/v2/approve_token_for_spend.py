@@ -3,8 +3,9 @@ import os
 
 from web3 import Web3
 
-from .gmx_utils import create_connection, base_dir, get_config, \
-    convert_to_checksum_address
+from .gmx_utils import (
+    create_connection, base_dir, get_config, convert_to_checksum_address
+)
 
 
 def check_if_approved(

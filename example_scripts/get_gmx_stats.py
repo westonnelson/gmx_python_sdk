@@ -2,16 +2,20 @@ from utils import _set_paths
 
 _set_paths()
 
-from gmx_python_sdk.scripts.v2.get_available_liquidity import GetAvailableLiquidity
-from gmx_python_sdk.scripts.v2.get_borrow_apr import GetBorrowAPR
-from gmx_python_sdk.scripts.v2.get_claimable_fees import GetClaimableFees
-from gmx_python_sdk.scripts.v2.get_contract_balance import GetPoolTVL as ContractTVL
-from gmx_python_sdk.scripts.v2.get_funding_apr import GetFundingFee
-from gmx_python_sdk.scripts.v2.get_gm_prices import GMPrices
-from gmx_python_sdk.scripts.v2.get_markets import GetMarkets
-from gmx_python_sdk.scripts.v2.get_open_interest import OpenInterest
-from gmx_python_sdk.scripts.v2.get_oracle_prices import GetOraclePrices
-from gmx_python_sdk.scripts.v2.get_pool_tvl import GetPoolTVL
+from gmx_python_sdk.scripts.v2.get.get_available_liquidity import (
+    GetAvailableLiquidity
+)
+from gmx_python_sdk.scripts.v2.get.get_borrow_apr import GetBorrowAPR
+from gmx_python_sdk.scripts.v2.get.get_claimable_fees import GetClaimableFees
+from gmx_python_sdk.scripts.v2.get.get_contract_balance import (
+    GetPoolTVL as ContractTVL
+)
+from gmx_python_sdk.scripts.v2.get.get_funding_apr import GetFundingFee
+from gmx_python_sdk.scripts.v2.get.get_gm_prices import GMPrices
+from gmx_python_sdk.scripts.v2.get.get_markets import Markets
+from gmx_python_sdk.scripts.v2.get.get_open_interest import OpenInterest
+from gmx_python_sdk.scripts.v2.get.get_oracle_prices import OraclePrices
+from gmx_python_sdk.scripts.v2.get.get_pool_tvl import GetPoolTVL
 
 
 class GetGMXv2Stats:
@@ -25,7 +29,7 @@ class GetGMXv2Stats:
 
         return GetAvailableLiquidity(
             chain=chain
-        ).get_available_liquidity(
+        ).get_data(
             to_csv=self.to_csv,
             to_json=self.to_json
         )
@@ -34,7 +38,7 @@ class GetGMXv2Stats:
 
         return GetBorrowAPR(
             chain=chain
-        ).get_borrow_apr(
+        ).get_data(
             to_csv=self.to_csv,
             to_json=self.to_json
         )
@@ -43,7 +47,7 @@ class GetGMXv2Stats:
 
         return GetClaimableFees(
             chain=chain
-        ).get_claimable_fees(
+        ).get_data(
             to_csv=self.to_csv,
             to_json=self.to_json
         )
@@ -76,7 +80,7 @@ class GetGMXv2Stats:
 
     def get_available_markets(self, chain):
 
-        return GetMarkets(
+        return Markets(
             chain=chain
         ).get_available_markets()
 
@@ -84,14 +88,14 @@ class GetGMXv2Stats:
 
         return OpenInterest(
             chain=chain
-        ).call_open_interest(
+        ).get_data(
             to_csv=self.to_csv,
             to_json=self.to_json
         )
 
     def get_oracle_prices(self, chain):
 
-        return GetOraclePrices(
+        return OraclePrices(
             chain=chain
         ).get_recent_prices()
 

@@ -4,8 +4,8 @@ from web3 import Web3
 
 from hexbytes import HexBytes
 
-from .get_markets import GetMarkets
-from .get_oracle_prices import GetOraclePrices
+from get.get_markets import Markets
+from get.get_oracle_prices import OraclePrices
 
 from .gmx_utils import get_config, convert_to_checksum_address, \
     get_exchange_router_contract, create_connection, \
@@ -46,7 +46,7 @@ class Deposit:
 
         self._connection = create_connection(chain=chain)
 
-        self.all_markets_info = GetMarkets(chain=self.chain).get_available_markets()
+        self.all_markets_info = Markets(chain=self.chain).get_available_markets()
 
         self.log = logging.getLogger(__name__)
         self.log.info("Creating order...")
@@ -317,7 +317,7 @@ class Deposit:
         data_store_contract_address = contract_map[self.chain]['datastore']['contract_address']
 
         market = self.all_markets_info[self.market_key]
-        oracle_prices_dict = GetOraclePrices(chain=self.chain).get_recent_prices()
+        oracle_prices_dict = OraclePrices(chain=self.chain).get_recent_prices()
 
         index_token_address = market['index_token_address']
         long_token_address = market['long_token_address']

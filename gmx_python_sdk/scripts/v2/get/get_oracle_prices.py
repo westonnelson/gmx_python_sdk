@@ -1,7 +1,7 @@
 import requests
 
 
-class GetOraclePrices:
+class OraclePrices:
     def __init__(self, chain: str):
         self.chain = chain
         self.oracle_url = {

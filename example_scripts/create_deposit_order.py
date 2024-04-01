@@ -2,7 +2,7 @@ from utils import _set_paths
 
 _set_paths()
 
-from gmx_python_sdk.scripts.v2.create_deposit_order import DepositOrder
+from gmx_python_sdk.scripts.v2.order.create_deposit_order import DepositOrder
 from gmx_python_sdk.scripts.v2.liquidity_argument_parser import LiquidityArgumentParser
 
 

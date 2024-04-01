@@ -1,5 +1,5 @@
-from .base import GetData
-from .gmx_utils import execute_threading
+from .get import GetData
+from ..gmx_utils import execute_threading
 
 
 class GetBorrowAPR(GetData):
@@ -19,8 +19,6 @@ class GetBorrowAPR(GetData):
         output_list = []
         mapper = []
         for market_key in self.markets.info:
-            self._filter_swap_markets(market_key)
-
             index_token_address = self.markets.get_index_token_address(
                 market_key
             )

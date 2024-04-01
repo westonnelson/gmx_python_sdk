@@ -1,12 +1,18 @@
 import logging
 
 from .get_markets import Markets
-from .get_oracle_prices import GetOraclePrices
-from .gmx_utils import get_reader_contract, contract_map, save_json_file_to_datastore, save_csv_to_datastore
+from .get_oracle_prices import OraclePrices
+from ..gmx_utils import (
+    get_reader_contract, contract_map, save_json_file_to_datastore,
+    save_csv_to_datastore
+)
 
 
 class GetData:
-    def __init__(self, chain: str, use_local_datastore: bool = False, filter_swap_markets: bool = True):
+    def __init__(
+        self, chain: str, use_local_datastore: bool = False,
+        filter_swap_markets: bool = True
+    ):
         self.chain = chain
         self.use_local_datastore = use_local_datastore
         self.filter_swap_markets = filter_swap_markets
@@ -62,7 +68,7 @@ class GetData:
         )
 
     def _filter_swap_markets(self):
-        # TODO: Move to markets
+        # TODO: Move to markets MAYBE
         keys_to_remove = []
         for market_key in self.markets.info:
             market_symbol = self.markets.get_market_symbol(market_key)
@@ -72,10 +78,35 @@ class GetData:
 
         [self.markets.info.pop(k) for k in keys_to_remove]
 
+    def _get_pnl(
+        self, market: list, prices_list: list, is_long: bool,
+        maximize: bool = False
+    ):
+        open_interest_pnl = (
+            self.reader_contract.functions.getOpenInterestWithPnl(
+                self.data_store_contract_address,
+                market,
+                prices_list,
+                is_long,
+                maximize
+            )
+        )
+
+        pnl = self.reader_contract.functions.getPnl(
+            self.data_store_contract_address,
+            market,
+            prices_list,
+            is_long,
+            maximize
+        )
+
+        return open_interest_pnl, pnl
+
     def _get_oracle_prices(
         self,
         market_key: str,
         index_token_address: str,
+        return_tuple: bool = False,
     ):
         """
         For a given market get the marketInfo from the reader contract
@@ -97,7 +128,7 @@ class GetData:
             unexecuted reader contract object.
 
         """
-        oracle_prices_dict = GetOraclePrices(self.chain).get_recent_prices()
+        oracle_prices_dict = OraclePrices(self.chain).get_recent_prices()
 
         try:
             prices = (
@@ -175,15 +206,11 @@ class GetData:
                     int(1000000000000000000000000)
                 ))
 
+        if return_tuple:
+            return prices
+
         return self.reader_contract.functions.getMarketInfo(
             self.data_store_contract_address,
             prices,
             market_key
         )
-
-
-if __name__ == "__main__":
-    markets = Markets(chain='arbitrum').get_available_markets()
-    print('markets')
-    from pprint import pprint
-    pprint(markets)

@@ -1,20 +1,18 @@
-from .gmx_utils import (
+from .get import GetData
+from ..gmx_utils import (
     get_reader_contract, contract_map, execute_threading,
     save_json_file_to_datastore, make_timestamped_dataframe,
     save_csv_to_datastore
 )
-
-from .get_oracle_prices import GetOraclePrices
-from .get_markets import GetMarkets
-from .keys import (
+from ..keys import (
     MAX_PNL_FACTOR_FOR_TRADERS, MAX_PNL_FACTOR_FOR_DEPOSITS,
     MAX_PNL_FACTOR_FOR_WITHDRAWALS
 )
 
 
-class GMPrices:
+class GMPrices(GetData):
     def __init__(self, chain: str):
-        self.chain = chain
+        super().__init__(chain)
         self.to_json = None
         self.to_csv = None
 
@@ -39,7 +37,7 @@ class GMPrices:
         self.to_csv = to_csv
         pnl_factor_type = MAX_PNL_FACTOR_FOR_WITHDRAWALS
 
-        return self._get_prices(pnl_factor_type)
+        return self._get_data_processing(pnl_factor_type)
 
     def get_price_deposit(self, to_json: bool = False, to_csv: bool = False):
         """
@@ -61,7 +59,7 @@ class GMPrices:
         self.to_json = to_json
         self.to_csv = to_csv
         pnl_factor_type = MAX_PNL_FACTOR_FOR_DEPOSITS
-        return self._get_prices(pnl_factor_type)
+        return self._get_data_processing(pnl_factor_type)
 
     def get_price_traders(self, to_json: bool = False, to_csv: bool = False):
         """
@@ -83,9 +81,9 @@ class GMPrices:
         self.to_json = to_json
         self.to_csv = to_csv
         pnl_factor_type = MAX_PNL_FACTOR_FOR_TRADERS
-        return self._get_prices(pnl_factor_type)
+        return self._get_data_processing(pnl_factor_type)
 
-    def _get_prices(self, pnl_factor_type):
+    def _get_data_processing(self, pnl_factor_type):
         """
         Get GM pool prices for a given profit/loss factor
 
@@ -100,108 +98,64 @@ class GMPrices:
             dictionary of gm prices.
 
         """
-        markets = GetMarkets(chain=self.chain).get_available_markets()
-        prices = GetOraclePrices(chain=self.chain).get_recent_prices()
-
         output_list = []
         mapper = []
+        self._filter_swap_markets()
 
-        for market_key in markets:
-            # TODO - Does not get swap market GM prices currently
-            if "SWAP" in markets[market_key]['market_symbol']:
-                continue
+        for iter, market_key in enumerate(self.markets.info):
+            self._get_token_addresses(market_key)
+            index_token_address = self.markets.get_index_token_address(
+                market_key
+            )
+            oracle_prices = self._get_oracle_prices(
+                market_key,
+                index_token_address,
+                return_tuple=True
+            )
 
             market = [
                 market_key,
-                markets[market_key]['index_token_address'],
-                markets[market_key]['long_token_address'],
-                markets[market_key]['short_token_address']
+                index_token_address,
+                self._long_token_address,
+                self._short_token_address
             ]
-
-            index_price_tuple = [
-                int(
-                    prices[
-                        markets[market_key]['index_token_address']
-                    ]['minPriceFull']
-                ),
-                int(
-                    prices[
-                        markets[market_key]['index_token_address']
-                    ]['maxPriceFull']
-                )
-            ]
-
-            long_price_tuple = [
-                int(
-                    prices[
-                        markets[market_key]['long_token_address']
-                    ]['minPriceFull']
-                ),
-                int(
-                    prices[
-                        markets[market_key]['long_token_address']
-                    ]['maxPriceFull']
-                )
-            ]
-
-            # TODO - needs to be here until GMX add stables to signed prices
-            # API
-            try:
-                short_price_tuple = [
-                    int(
-                        prices[
-                            markets[market_key]['short_token_address']
-                        ]['minPriceFull']
-                    ),
-                    int(
-                        prices[
-                            markets[market_key]['short_token_address']
-                        ]['maxPriceFull']
-                    )
-                ]
-            except KeyError:
-                short_price_tuple = [
-                    int(1000000000000000000000000),
-                    int(1000000000000000000000000)
-                ]
 
             output = self._make_market_token_price_query(
                 market,
-                index_price_tuple,
-                long_price_tuple,
-                short_price_tuple,
+                oracle_prices[0],
+                oracle_prices[1],
+                oracle_prices[2],
                 pnl_factor_type
             )
 
             # add the uncalled web3 object to list
-            output_list = output_list + [output]
+            output_list.append(output)
 
             # add the market symbol to a list to use to map to dictionary later
-            mapper = mapper + [markets[market_key]['market_symbol']]
+            mapper.append(self.markets.get_market_symbol(market_key))
 
         # feed the uncalled web3 objects into threading function
         threaded_output = execute_threading(output_list)
 
-        gm_pool_prices = {}
         for key, output in zip(mapper, threaded_output):
             # divide by 10**30 to turn into USD value
-            gm_pool_prices[key] = output[0]/10**30
+            self.output[key] = output[0]/10**30
 
         if self.to_json:
             filename = "{}_gm_prices.json".format(self.chain)
             save_json_file_to_datastore(
                 filename,
-                gm_pool_prices
+                self.output
             )
 
         if self.to_csv:
-            dataframe = make_timestamped_dataframe(gm_pool_prices)
+            dataframe = make_timestamped_dataframe(self.output)
 
             save_csv_to_datastore(
                 "{}_gm_prices.csv".format(self.chain),
                 dataframe)
 
-        return gm_pool_prices
+        return self.output
 
     def _make_market_token_price_query(
             self,
@@ -235,15 +189,10 @@ class GMPrices:
             DESCRIPTION.
 
         """
-        reader_contract = get_reader_contract(self.chain)
-        data_store_contract_address = (
-            contract_map[self.chain]['datastore']['contract_address']
-        )
-
         # maximise to take max prices in calculation
         maximise = True
-        output = reader_contract.functions.getMarketTokenPrice(
-            data_store_contract_address,
+        output = self.reader_contract.functions.getMarketTokenPrice(
+            self.data_store_contract_address,
             market,
             index_price_tuple,
             long_price_tuple,

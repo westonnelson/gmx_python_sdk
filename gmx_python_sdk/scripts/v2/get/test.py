@@ -1,12 +1,12 @@
 import logging
 import numpy as np
 
-from .gmx_utils import (
+from ..gmx_utils import (
     get_reader_contract, contract_map, get_tokens_address_dict,
     convert_to_checksum_address
 )
-from .get_markets import GetMarkets
-from .get_oracle_prices import GetOraclePrices
+from .get_markets import Markets
+from .get_oracle_prices import OraclePrices
 
 chain = 'arbitrum'
 
@@ -14,7 +14,7 @@ chain = 'arbitrum'
 class GetOpenPositions:
     def __init__(self, chain):
         self.chain = chain
-        self.markets = GetMarkets(chain=chain).get_available_markets()
+        self.markets = Markets(chain=chain).get_available_markets()
         self.reader_contract = get_reader_contract(chain)
 
     def get_positions(self, address: str):
@@ -95,7 +95,7 @@ class GetOpenPositions:
                 raw_position[0][2]
             ]['decimals']
         )
-        prices = GetOraclePrices(chain=chain).get_recent_prices()
+        prices = OraclePrices(chain=chain).get_recent_prices()
         mark_price = np.median(
             [
                 float(

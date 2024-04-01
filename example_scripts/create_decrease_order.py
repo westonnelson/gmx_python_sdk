@@ -2,8 +2,10 @@ from utils import _set_paths
 
 _set_paths()
 
-from gmx_python_sdk.scripts.v2.create_decrease_order import DecreaseOrder
-from gmx_python_sdk.scripts.v2.order_argument_parser import OrderArgumentParser
+from gmx_python_sdk.scripts.v2.order.create_decrease_order import DecreaseOrder
+from gmx_python_sdk.scripts.v2.order.order_argument_parser import (
+    OrderArgumentParser
+)
 
 
 # Example of passing arguments through the Order parser to close the desired position

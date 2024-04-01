@@ -1,11 +1,11 @@
 from .order import Order
-from .gas_utils import get_gas_limits
-from .gmx_utils import (get_datastore_contract)
+from ..gas_utils import get_gas_limits
+from ..gmx_utils import get_datastore_contract
 
 
-class DecreaseOrder(Order):
+class IncreaseOrder(Order):
     """
-    Open a sell order
+    Open a buy order
     Extends base Order class
     """
 
@@ -14,10 +14,10 @@ class DecreaseOrder(Order):
             *args, **kwargs
         )
 
-        # Close an order
-        self.order_builder(is_close=True)
+        # Open an order
+        self.order_builder(is_open=True)
 
     def determine_gas_limits(self):
         datastore = get_datastore_contract(self.chain)
         self._gas_limits = get_gas_limits(datastore)
-        self._gas_limits_order_type = self._gas_limits["decrease_order"]
+        self._gas_limits_order_type = self._gas_limits["increase_order"]

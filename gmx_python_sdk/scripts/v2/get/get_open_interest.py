@@ -1,9 +1,9 @@
 import time
 from numerize import numerize
 
-from .base import GetData
-from .gmx_utils import execute_threading
-from .get_oracle_prices import GetOraclePrices
+from .get import GetData
+from .get_oracle_prices import OraclePrices
+from ..gmx_utils import execute_threading
 
 
 class OpenInterest(GetData):
@@ -20,7 +20,7 @@ class OpenInterest(GetData):
             dictionary of open interest data.
 
         """
-        oracle_prices_dict = GetOraclePrices(
+        oracle_prices_dict = OraclePrices(
             chain=self.chain
         ).get_recent_prices()
         print("GMX v2 Open Interest\n")
@@ -33,7 +33,7 @@ class OpenInterest(GetData):
         long_precision_list = []
 
         for market_key in self.markets.info:
-            # Skip swap markets
+            self._filter_swap_markets()
             self._get_token_addresses(market_key)
 
             index_token_address = self.markets.get_index_token_address(
@@ -47,18 +47,13 @@ class OpenInterest(GetData):
                 self._short_token_address
             ]
 
-            prices_list = [
-                int(
-                    oracle_prices_dict[
-                        index_token_address
-                    ]['minPriceFull']
-                ),
-                int(
-                    oracle_prices_dict[
-                        index_token_address
-                    ]['maxPriceFull']
-                )
-            ]
+            min_price = int(
+                oracle_prices_dict[index_token_address]['minPriceFull']
+            )
+            max_price = int(
+                oracle_prices_dict[index_token_address]['maxPriceFull']
+            )
+            prices_list = [min_price, max_price]
 
             # If the market is a synthetic one we need to use the decimals
             # from the index token
@@ -79,17 +74,13 @@ class OpenInterest(GetData):
             precision = 10 ** (decimal_factor + oracle_factor)
             long_precision_list = long_precision_list + [precision]
 
-            long_oi_with_pnl, long_pnl = self.make_query(
-                self.reader_contract,
-                self.data_store_contract_address,
+            long_oi_with_pnl, long_pnl = self._get_pnl(
                 market,
                 prices_list,
                 is_long=True
             )
 
-            short_oi_with_pnl, short_pnl = self.make_query(
-                self.reader_contract,
-                self.data_store_contract_address,
+            short_oi_with_pnl, short_pnl = self._get_pnl(
                 market,
                 prices_list,
                 is_long=False
@@ -126,83 +117,23 @@ class OpenInterest(GetData):
             short_pnl_threaded_output,
             long_precision_list
         ):
-            print("{} Long: ${}".format(
-                market_symbol,
-                numerize.numerize(
-                    (long_oi - long_pnl) / long_precision)
-                )
-            )
-
-            self.output['long'][market_symbol] = (
-                long_oi - long_pnl
-            ) / long_precision
-
             precision = 10 ** 30
+            long_value = (long_oi - long_pnl) / long_precision
+            short_value = (short_oi - short_pnl) / precision
 
-            print("{} Short: ${}".format(
-                market_symbol,
-                numerize.numerize(
-                    ((short_oi - short_pnl) / precision))
-                )
+            self.log.info(
+                f"{market_symbol} Long: ${numerize.numerize(long_value)}"
             )
-            self.output['short'][market_symbol] = (
-                short_oi - short_pnl
-            ) / precision
+            self.log.info(
+                f"{market_symbol} Short: ${numerize.numerize(short_value)}"
+            )
+
+            self.output['long'][market_symbol] = long_value
+            self.output['short'][market_symbol] = short_value
 
         return self.output
-
-    def make_query(
-        self,
-        reader_contract,
-        data_store_contract_address: str,
-        market: str,
-        prices_list: list,
-        is_long: bool,
-        maximize: bool = False
-    ):
-        """
-        Make query to reader contract to get open interest with pnl and the
-        pnl for a given market and direction (set with is_long)
-
-        Parameters
-        ----------
-        reader_contract : web3._utils.datatypes.Contract
-            web3 object of the reader contract.
-        data_store_contract_address : str
-            address of the datastore contract.
-        market : str
-            address of the GMX market.
-        prices_list : list
-            list of min/max short, long, and index fast prices.
-        is_long : bool
-            is long or short.
-        maximize : bool, optional
-            either use min or max price. The default is False.
-
-        Returns
-        -------
-        oi_with_pnl
-            uncalled web3 query.
-        pnl
-            uncalled web3 query.
-        """
-        oi_with_pnl = reader_contract.functions.getOpenInterestWithPnl(
-            data_store_contract_address,
-            market,
-            prices_list,
-            is_long,
-            maximize
-        )
-        pnl = reader_contract.functions.getPnl(
-            data_store_contract_address,
-            market,
-            prices_list,
-            is_long,
-            maximize
-        )
-
-        return oi_with_pnl, pnl
 
 
 if __name__ == '__main__':
     data = OpenInterest(chain="arbitrum").get_data(to_csv=False)
+    print(data)

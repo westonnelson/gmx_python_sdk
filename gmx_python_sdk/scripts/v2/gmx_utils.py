@@ -14,7 +14,10 @@ from concurrent.futures import ThreadPoolExecutor
 
 # Get the absolute path of the current script
 current_script_path = os.path.abspath(__file__)
-base_dir = os.path.abspath(os.path.join(current_script_path, '..', '..', '..', '..'))
+base_dir = os.path.abspath(
+    os.path.join(current_script_path, '..', '..', '..', '..')
+)
+package_dir = base_dir + '/gmx_python_sdk/'
 print('base_dir', base_dir)
 
 logging.basicConfig(
@@ -147,10 +150,14 @@ class Config:
 
     def load_config(self):
         try:
-            config = yaml.safe_load(open(os.path.join(base_dir, "config.yaml")))
+            config = yaml.safe_load(
+                open(os.path.join(base_dir, "config.yaml"))
+            )
             return self.test_config_format(config)
         except FileNotFoundError:
-            print(f"Config file '{self.file_path}' not found.\nLoading blank template!")
+            print(
+                f"Config file '{self.file_path}' not found.\nLoading blank template!"
+            )
             return self.skeleton
 
     def set_config(self, config):
@@ -296,7 +303,7 @@ def get_token_balance_contract(chain: str, contract_address: str):
     contract_abi = json.load(
         open(
             os.path.join(
-                base_dir,
+                package_dir,
                 'contracts',
                 'balance_abi.json'
             )
@@ -488,7 +495,9 @@ def create_hash_string(string: str):
     return create_hash(["string"], [string])
 
 
-def get_execution_price_and_price_impact(chain: str, params: dict, decimals: int):
+def get_execution_price_and_price_impact(
+    chain: str, params: dict, decimals: int
+):
     """
     Get the execution price and price impact for a position
 
@@ -713,7 +722,7 @@ def save_json_file_to_datastore(filename: str, data: dict):
 
     """
     filepath = os.path.join(
-        base_dir,
+        package_dir,
         'data_store',
         filename
     )
@@ -752,10 +761,11 @@ def save_csv_to_datastore(filename: str, dataframe):
     """
 
     archive_filepath = os.path.join(
-        base_dir,
+        package_dir,
         "data_store",
         filename
     )
+
     if os.path.exists(archive_filepath):
         archive = pd.read_csv(
             archive_filepath
@@ -767,7 +777,7 @@ def save_csv_to_datastore(filename: str, dataframe):
 
     dataframe.to_csv(
         os.path.join(
-            base_dir,
+            package_dir,
             "data_store",
             filename
         ),

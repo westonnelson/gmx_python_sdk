@@ -1,12 +1,12 @@
-from .withdraw import Withdraw
-from .gas_utils import get_gas_limits
-from .gmx_utils import (get_datastore_contract)
+from .deposit import Deposit
+from ..gas_utils import get_gas_limits
+from ..gmx_utils import get_datastore_contract
 
 
-class WithdrawOrder(Withdraw):
+class DepositOrder(Deposit):
     """
-    Open a withdrawal order
-    Extends base Withdraw class
+    Open a Deposit order
+    Extends base Deposit class
     """
 
     def __init__(self, *args: list, **kwargs: dict) -> None:
@@ -14,8 +14,8 @@ class WithdrawOrder(Withdraw):
             *args, **kwargs
         )
 
-        # Open a withdrawal order
-        self.create_withdraw_order()
+        # Createa a deposit order
+        self.create_deposit_order()
 
     def determine_gas_limits(self):
 
