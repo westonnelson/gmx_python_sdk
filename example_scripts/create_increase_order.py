@@ -6,38 +6,25 @@ from gmx_python_sdk.scripts.v2.order.order_argument_parser import (
     OrderArgumentParser
 )
 from gmx_python_sdk.scripts.v2.order.create_increase_order import IncreaseOrder
-from gmx_python_sdk.scripts.v2.gmx_utils import Config
-
-# or omit argument to save/load config in base directory
-config_obj = Config()
-
-# Try load config, will create base template if it doesnt exist
-new_config_dict = config_obj.load_config()
-new_config_dict['private_key'] = "set_private_key_here"
-new_config_dict['user_wallet_address'] = "set_wallet_address_here"
-
-# Set config file
-config_obj.set_config(new_config_dict)
-
 
 parameters = {
     "chain": 'arbitrum',
 
     # the market you want to trade on
-    "index_token_symbol": "ETH",
+    "index_token_symbol": "SOL",
 
     # token to use as collateral. Start token swaps into collateral token
     # if different
-    "collateral_token_symbol": "ETH",
+    "collateral_token_symbol": "SOL",
 
     # the token to start with - WETH not supported yet
-    "start_token_symbol": "ETH",
+    "start_token_symbol": "SOL",
 
     # True for long, False for short
     "is_long": False,
 
     # Position size in in USD
-    "size_delta_usd": 10,
+    "size_delta_usd": 5,
 
     # if leverage is passed, will calculate number of tokens in
     # start_token_symbol amount

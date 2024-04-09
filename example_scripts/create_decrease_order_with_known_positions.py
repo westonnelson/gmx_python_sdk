@@ -8,8 +8,8 @@ from get_positions import (
 )
 
 chain = "arbitrum"
-market_symbol = "ETH"
-out_token = "ETH"
+market_symbol = "SOL"
+out_token = "USDC"
 is_long = False
 slippage_percent = 0.003
 amount_of_position_to_close = 1

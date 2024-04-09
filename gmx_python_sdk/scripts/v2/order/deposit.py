@@ -4,35 +4,38 @@ from web3 import Web3
 
 from hexbytes import HexBytes
 
-from .get_markets import GetMarkets
-from .get_oracle_prices import GetOraclePrices
+from ..get.get_markets import Markets
+from ..get.get_oracle_prices import OraclePrices
 
-from .gmx_utils import get_config, convert_to_checksum_address, \
+from ..gmx_utils import get_config, convert_to_checksum_address, \
     get_exchange_router_contract, create_connection, \
-    determine_swap_route, contract_map, \
-    get_estimated_withdrawal_amount_out
+    determine_swap_route, contract_map, get_estimated_deposit_amount_out
 
-from .approve_token_for_spend import check_if_approved
+from ..approve_token_for_spend import check_if_approved
 
-from .gas_utils import get_execution_fee
+from ..gas_utils import get_execution_fee
 
 CONFIG = get_config()
 
 
-class Withdraw:
+class Deposit:
 
     def __init__(
         self,
         chain: str,
         market_key: str,
-        out_token: str,
-        gm_amount: int,
+        initial_long_token: str,
+        initial_short_token: bool,
+        long_token_amount: int,
+        short_token_amount: int,
         debug_mode: bool = False
     ) -> None:
         self.chain = chain
         self.market_key = market_key
-        self.out_token = out_token
-        self.gm_amount = gm_amount
+        self.initial_long_token = initial_long_token
+        self.initial_short_token = initial_short_token
+        self.long_token_amount = long_token_amount
+        self.short_token_amount = short_token_amount
         self.long_token_swap_path = []
         self.short_token_swap_path = []
         self.debug_mode = debug_mode
@@ -43,7 +46,7 @@ class Withdraw:
 
         self._connection = create_connection(chain=chain)
 
-        self.all_markets_info = GetMarkets(chain=self.chain).get_available_markets()
+        self.all_markets_info = Markets(chain=self.chain).get_available_markets()
 
         self.log = logging.getLogger(__name__)
         self.log.info("Creating order...")
@@ -59,11 +62,19 @@ class Withdraw:
         """
         spender = contract_map[self.chain]["syntheticsrouter"]['contract_address']
 
-        check_if_approved(self.chain,
-                          spender,
-                          self.market_key,
-                          self.gm_amount,
-                          approve=True)
+        if self.long_token_amount > 0:
+            check_if_approved(self.chain,
+                              spender,
+                              self.initial_long_token,
+                              self.long_token_amount,
+                              approve=True)
+
+        if self.short_token_amount > 0:
+            check_if_approved(self.chain,
+                              spender,
+                              self.initial_short_token,
+                              self.short_token_amount,
+                              approve=True)
 
     def _submit_transaction(
         self, user_wallet_address: str, value_amount: float,
@@ -94,6 +105,7 @@ class Withdraw:
                 'nonce': nonce
             }
         )
+
         if not self.debug_mode:
             signed_txn = self._connection.eth.account.sign_transaction(
                 raw_txn, get_config()['private_key']
@@ -108,11 +120,11 @@ class Withdraw:
 
             self.log.info("Transaction submitted!")
 
-    def create_withdraw_order(self):
+    def create_deposit_order(self):
 
         user_wallet_address = CONFIG['user_wallet_address']
-
         self.determine_gas_limits()
+
         self.check_for_approval()
 
         should_unwrap_native_token = True
@@ -133,7 +145,8 @@ class Withdraw:
             ui_ref_address
         )
 
-        min_long_token_amount, min_short_token_amount = self._estimate_withdrawal()
+        # Minimum number of GM tokens we should expect
+        min_market_tokens = self._estimate_deposit()
 
         # Giving a 10% buffer here
         execution_fee = int(
@@ -146,6 +159,10 @@ class Withdraw:
 
         callback_gas_limit = 0
 
+        # If we havent defined either long/short set it to market default
+        self._check_initial_tokens()
+
+        # build swap paths for long/short deposit
         self._determine_swap_paths()
 
         arguments = (
@@ -153,34 +170,55 @@ class Withdraw:
             eth_zero_address,
             ui_ref_address,
             self.market_key,
+            self.initial_long_token,
+            self.initial_short_token,
             self.long_token_swap_path,
             self.short_token_swap_path,
-            min_long_token_amount,
-            min_short_token_amount,
+            min_market_tokens,
             should_unwrap_native_token,
             execution_fee,
             callback_gas_limit
         )
 
-        # Defined empty list to append keccak hash too
         multicall_args = []
+        wnt_amount = 0
 
-        # Send gas to withdrawVault
+        # Send long side of deposit if more than 0 tokens
+        if self.long_token_amount > 0:
+            if self.initial_long_token != "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1":
+                multicall_args = multicall_args + [HexBytes(
+                    self._send_tokens(
+                        self.initial_long_token,
+                        self.long_token_amount
+                    )
+                )]
+
+            # If adding long side with native token append to wnt_amount
+            else:
+                wnt_amount = wnt_amount + self.long_token_amount
+
+        # Send short side of deposit if more than 0 tokens
+        if self.short_token_amount > 0:
+            if self.initial_short_token != "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1":
+                multicall_args = multicall_args + [HexBytes(
+                    self._send_tokens(
+                        self.initial_short_token,
+                        self.short_token_amount
+                    )
+                )]
+
+            # If adding short side with native token append to wnt_amount
+            else:
+                wnt_amount = wnt_amount + self.short_token_amount
+
+        # Send wnt_amount, incl any deposit
         multicall_args = multicall_args + [HexBytes(
             self._send_wnt(
-                int(execution_fee)
+                int(wnt_amount + execution_fee)
             )
         )]
 
-        # Send GM tokens to withdrawVault
-        multicall_args = multicall_args + [HexBytes(
-            self._send_tokens(
-                self.market_key,
-                self.gm_amount
-            )
-        )]
-
-        # Send parameters for our swap
+        # send our deposit parameters
         multicall_args = multicall_args + [HexBytes(
             self._create_order(
                 arguments
@@ -189,58 +227,54 @@ class Withdraw:
 
         self._submit_transaction(
             user_wallet_address,
-            int(execution_fee),
+            int(wnt_amount + execution_fee),
             multicall_args,
             self._gas_limits
         )
 
+    def _check_initial_tokens(self):
+        """
+        Check if we need to set the long or short token address
+        when depositing
+        """
+
+        if self.long_token_amount == 0:
+            self.initial_long_token = self.all_markets_info[self.market_key]['long_token_address']
+
+        if self.short_token_amount == 0:
+            self.initial_short_token = self.all_markets_info[self.market_key]['short_token_address']
+
     def _determine_swap_paths(self):
         """
-        Calculate swap paths for long and short tokens
-
+        Check the required markets we need to swap our tokens through
+        to deposit on the long or short side
         """
 
         market = self.all_markets_info[self.market_key]
 
-        if market['long_token_address'] != self.out_token:
-            try:
-                self.long_token_swap_path, requires_multi_swap = determine_swap_route(
-                    self.all_markets_info,
-                    self.out_token,
-                    market['long_token_address']
-                )
-            except Exception:
-                pass
+        if market['long_token_address'] != self.initial_long_token:
 
-        if market['short_token_address'] != self.out_token:
-            try:
-                self.short_token_swap_path, requires_multi_swap = determine_swap_route(
-                    self.all_markets_info,
-                    self.out_token,
-                    market['short_token_address']
-                )
-            except Exception:
-                pass
+            self.long_token_swap_path, requires_multi_swap = determine_swap_route(
+                self.all_markets_info,
+                self.initial_long_token,
+                market['long_token_address']
+            )
+
+        if market['short_token_address'] != self.initial_short_token:
+
+            self.short_token_swap_path, requires_multi_swap = determine_swap_route(
+                self.all_markets_info,
+                self.initial_short_token,
+                market['short_token_address']
+            )
 
     def _create_order(self, arguments):
         """
         Create Order
         """
         return self._exchange_router_contract_obj.encodeABI(
-            fn_name="createWithdrawal",
+            fn_name="createDeposit",
             args=[arguments],
-        )
-
-    def _send_wnt(self, amount):
-        """
-        Send WNT
-        """
-        return self._exchange_router_contract_obj.encodeABI(
-            fn_name='sendWnt',
-            args=(
-                "0x0628D46b5D145f183AdB6Ef1f2c97eD1C4701C55",
-                amount
-            )
         )
 
     def _send_tokens(self, token_address, amount):
@@ -251,26 +285,39 @@ class Withdraw:
             fn_name="sendTokens",
             args=(
                 token_address,
-                '0x0628D46b5D145f183AdB6Ef1f2c97eD1C4701C55',
+                '0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55',
                 amount
             ),
         )
 
-    def _estimate_withdrawal(self):
+    def _send_wnt(self, amount):
         """
-        Estimate the amount tokens output after burning our GM
+        Send WNT
+        """
+        return self._exchange_router_contract_obj.encodeABI(
+            fn_name='sendWnt',
+            args=(
+                "0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55",
+                amount
+            )
+        )
+
+    def _estimate_deposit(self):
+        """
+        Given the amount of tokens we have to deposit, estimate
+        the amount of GM we expect out
 
         Returns
         -------
-        list
-            list of amount of long and short tokens.
+        int
+            amount of GM tokens.
 
         """
 
         data_store_contract_address = contract_map[self.chain]['datastore']['contract_address']
 
         market = self.all_markets_info[self.market_key]
-        oracle_prices_dict = GetOraclePrices(chain=self.chain).get_recent_prices()
+        oracle_prices_dict = OraclePrices(chain=self.chain).get_recent_prices()
 
         index_token_address = market['index_token_address']
         long_token_address = market['long_token_address']
@@ -298,8 +345,9 @@ class Withdraw:
             "data_store_address": data_store_contract_address,
             "market_addresses": market_addresses,
             "token_prices_tuple": prices,
-            "gm_amount": self.gm_amount,
+            "long_token_amount": self.long_token_amount,
+            "short_token_amount": self.short_token_amount,
             "ui_fee_receiver": "0x0000000000000000000000000000000000000000"
         }
 
-        return get_estimated_withdrawal_amount_out(self.chain, parameters)
+        return get_estimated_deposit_amount_out(self.chain, parameters)

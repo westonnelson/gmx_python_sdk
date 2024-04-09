@@ -64,7 +64,7 @@ class GetGMXv2Stats:
 
         return GetFundingFee(
             chain=chain
-        ).get_funding_apr(
+        ).get_data(
             to_csv=self.to_csv,
             to_json=self.to_json
         )
@@ -120,13 +120,13 @@ if __name__ == "__main__":
         to_csv=to_csv
     )
 
-    liquidity = stats_object.get_available_liquidity(chain=chain)
-    borrow_apr = stats_object.get_borrow_apr(chain=chain)
-    claimable_fees = stats_object.get_claimable_fees(chain=chain)
-    contract_tvl = stats_object.get_contract_tvl(chain=chain)
+    # liquidity = stats_object.get_available_liquidity(chain=chain)
+    # borrow_apr = stats_object.get_borrow_apr(chain=chain)
+    # claimable_fees = stats_object.get_claimable_fees(chain=chain)
+    # contract_tvl = stats_object.get_contract_tvl(chain=chain)
     funding_apr = stats_object.get_funding_apr(chain=chain)
-    gm_prices = stats_object.get_gm_price(chain=chain)
-    markets = stats_object.get_available_markets(chain=chain)
-    open_interest = stats_object.get_open_interest(chain=chain)
-    oracle_prices = stats_object.get_oracle_prices(chain=chain)
-    pool_tvl = stats_object.get_pool_tvl(chain=chain)
+    # gm_prices = stats_object.get_gm_price(chain=chain)
+    # markets = stats_object.get_available_markets(chain=chain)
+    # open_interest = stats_object.get_open_interest(chain=chain)
+    # oracle_prices = stats_object.get_oracle_prices(chain=chain)
+    # pool_tvl = stats_object.get_pool_tvl(chain=chain)

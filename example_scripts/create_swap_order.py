@@ -16,7 +16,7 @@ parameters = {
     "out_token_symbol": "ETH",
 
     # the token to start with - WETH not supported yet
-    "start_token_symbol": "ETH",
+    "start_token_symbol": "SOL",
 
     # True for long, False for short
     "is_long": False,
@@ -26,7 +26,7 @@ parameters = {
 
     # if leverage is passed, will calculate number of tokens in
     # start_token_symbol amount
-    "initial_collateral_delta": 0.008160406503417525,
+    "initial_collateral_delta": 0.05,
 
     # as a percentage
     "slippage_percent": 0.03
@@ -53,5 +53,5 @@ order = SwapOrder(
     ),
     slippage_percent=order_parameters['slippage_percent'],
     swap_path=order_parameters['swap_path'],
-    debug_mode=True
+    debug_mode=False
 )

@@ -4,7 +4,7 @@ import numpy as np
 from .get import GetData
 from .get_oracle_prices import OraclePrices
 
-from ..gmx_utils import ( get_tokens_address_dict, convert_to_checksum_address)
+from ..gmx_utils import (get_tokens_address_dict, convert_to_checksum_address)
 
 chain = 'arbitrum'
 
@@ -57,7 +57,7 @@ class GetOpenPositions(GetData):
                 direction = 'short'
 
             key = "{}_{}".format(
-                processed_position['market_symbol'],
+                processed_position['market_symbol'][0],
                 direction
             )
             processed_positions[key] = processed_position
@@ -117,7 +117,7 @@ class GetOpenPositions(GetData):
                 self.markets.info[raw_position[0][1]]['market_symbol'],
             ),
             "collateral_token": chain_tokens[raw_position[0][2]]['symbol'],
-            "position_size": raw_position[1][0]/10**30,
+            "position_size": raw_position[1][0] / 10**30,
             "size_in_tokens": raw_position[1][1],
             "entry_price": (
                 (

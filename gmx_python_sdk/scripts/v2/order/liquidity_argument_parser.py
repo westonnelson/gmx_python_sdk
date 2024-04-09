@@ -1,9 +1,9 @@
 import numpy as np
 
-from .get.get_markets import Markets
-from .get.get_oracle_prices import OraclePrices
+from ..get.get_markets import Markets
+from ..get.get_oracle_prices import OraclePrices
 
-from .gmx_utils import get_tokens_address_dict
+from ..gmx_utils import get_tokens_address_dict
 
 
 class LiquidityArgumentParser:
@@ -208,7 +208,8 @@ class LiquidityArgumentParser:
             out_token_address = "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f"
 
         if out_token_address not in [market['long_token_address'], market['short_token_address']]:
-            raise Exception("Out token must be either the long or short token of the market")
+            raise Exception(
+                "Out token must be either the long or short token of the market")
         else:
             self.parameters_dict['out_token_address'] = out_token_address
 

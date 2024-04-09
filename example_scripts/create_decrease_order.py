@@ -12,12 +12,12 @@ from gmx_python_sdk.scripts.v2.order.order_argument_parser import (
 parameters = {
     "chain": 'arbitrum',
 
-    "index_token_symbol": "AAVE",
+    "index_token_symbol": "SOL",
 
-    "collateral_token_symbol": "AAVE",
+    "collateral_token_symbol": "SOL",
 
     # set start token the same as your collateral
-    "start_token_symbol": "AAVE",
+    "start_token_symbol": "SOL",
 
     "is_long": True,
 
@@ -31,7 +31,8 @@ parameters = {
     "slippage_percent": 0.03
 }
 
-order_parameters = OrderArgumentParser(is_decrease=True).process_parameters_dictionary(parameters)
+order_parameters = OrderArgumentParser(
+    is_decrease=True).process_parameters_dictionary(parameters)
 
 print(order_parameters)
 

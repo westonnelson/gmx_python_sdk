@@ -1,8 +1,8 @@
 import numpy as np
 
-from .get_oracle_prices import GetOraclePrices
-from .get_markets import GetMarkets
-from .gmx_utils import get_tokens_address_dict, determine_swap_route
+from ..get.get_oracle_prices import OraclePrices
+from ..get.get_markets import Markets
+from ..gmx_utils import get_tokens_address_dict, determine_swap_route
 
 
 class OrderArgumentParser:
@@ -141,7 +141,7 @@ class OrderArgumentParser:
 
         # use the index token address to find the market key from get_available_markets
         self.parameters_dict['market_key'] = self.find_market_key_by_index_address(
-            GetMarkets(chain=self.parameters_dict['chain']).get_available_markets(),
+            Markets(chain=self.parameters_dict['chain']).get_available_markets(),
             index_token_address
         )
 
@@ -227,7 +227,7 @@ class OrderArgumentParser:
 
         if self.is_swap:
             # first get markets to supply to determine_swap_route
-            markets = GetMarkets(
+            markets = Markets(
                 chain=self.parameters_dict['chain']
             ).get_available_markets()
 
@@ -246,7 +246,7 @@ class OrderArgumentParser:
         else:
 
             # first get markets to supply to determine_swap_route
-            markets = GetMarkets(
+            markets = Markets(
                 chain=self.parameters_dict['chain']
             ).get_available_markets()
 
@@ -289,7 +289,7 @@ class OrderArgumentParser:
         if self.parameters_dict['market_key'] == "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f":
             market_key = "0x47c031236e19d024b42f8AE6780E44A573170703"
 
-        market = GetMarkets(
+        market = Markets(
             chain=self.parameters_dict['chain']
         ).get_available_markets()[market_key]
 
@@ -393,7 +393,7 @@ class OrderArgumentParser:
         """
 
         initial_collateral_delta_amount = self.parameters_dict['initial_collateral_delta']
-        prices = GetOraclePrices(chain=self.parameters_dict['chain']).get_recent_prices()
+        prices = OraclePrices(chain=self.parameters_dict['chain']).get_recent_prices()
         price = np.median(
             [float(prices[self.parameters_dict["start_token_address"]]['maxPriceFull']),
              float(prices[self.parameters_dict["start_token_address"]]['minPriceFull'])]
@@ -417,7 +417,7 @@ class OrderArgumentParser:
 
         """
 
-        prices = GetOraclePrices(chain=self.parameters_dict['chain']).get_recent_prices()
+        prices = OraclePrices(chain=self.parameters_dict['chain']).get_recent_prices()
         price = np.median(
             [float(prices[self.parameters_dict["start_token_address"]]['maxPriceFull']),
              float(prices[self.parameters_dict["start_token_address"]]['minPriceFull'])]
@@ -459,7 +459,8 @@ class OrderArgumentParser:
         """
 
         collateral_usd_value = self._calculate_initial_collateral_usd
-        leverage_requested = self.parameters_dict["size_delta_usd"] / collateral_usd_value()
+        leverage_requested = self.parameters_dict["size_delta_usd"] / \
+            collateral_usd_value()
 
         # TODO - leverage is now a contract parameter and needs to be queried
         max_leverage = 100

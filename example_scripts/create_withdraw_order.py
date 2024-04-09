@@ -5,16 +5,16 @@ _set_paths()
 from gmx_python_sdk.scripts.v2.order.create_withdrawal_order import (
     WithdrawOrder
 )
-from gmx_python_sdk.scripts.v2.liquidity_argument_parser import (
+from gmx_python_sdk.scripts.v2.order.liquidity_argument_parser import (
     LiquidityArgumentParser
 )
 
 
 parameters = {
     "chain": "arbitrum",
-    "market_token_symbol": "BTC",
+    "market_token_symbol": "ETH",
     "out_token_symbol": "USDC",
-    "gm_amount": 12.42
+    "gm_amount": 3
 }
 
 output = LiquidityArgumentParser(

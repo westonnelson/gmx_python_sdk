@@ -38,7 +38,7 @@ class GetFundingFee(GetData):
         else:
             open_interest = OpenInterest(
                 chain=self.chain
-            ).call_open_interest(to_json=False)
+            ).get_data(to_json=False)
 
         print("\nGMX v2 Funding Rates (% per hour)")
 

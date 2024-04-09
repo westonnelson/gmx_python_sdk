@@ -4,8 +4,8 @@ import numpy as np
 from hexbytes import HexBytes
 from web3 import Web3
 
-from .get.get_markets import Markets
-from .get.get_oracle_prices import OraclePrices
+from ..get.get_markets import Markets
+from ..get.get_oracle_prices import OraclePrices
 from ..gmx_utils import (
     get_exchange_router_contract, create_connection, get_config, contract_map,
     PRECISION, get_execution_price_and_price_impact, order_type as order_types,
@@ -184,7 +184,7 @@ class Order:
         if is_swap:
 
             # 30% buffer
-            execution_fee = int(execution_fee * 1.3)
+            execution_fee = int(execution_fee * 1.5)
         else:
 
             # 20% buffer

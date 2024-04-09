@@ -183,17 +183,17 @@ class Config:
                 'user_wallet_address': None
                 }"""
             raise Exception(
-            "Please make sure your config file matches the following structure:\n\n{}".format(
-                structure
+                "Please make sure your config file matches the following structure:\n\n{}".format(
+                    structure
                 )
             )
 
 
 def get_config(filepath: str = os.path.join(base_dir, "config.yaml")):
     config = Config(filepath).load_config()
-    print('config')
-    from pprint import pprint
-    pprint(config)
+    # print('config')
+    # from pprint import pprint
+    # pprint(config)
 
     if config['private_key'] is None:
         logging.warning("Private key not set!")
@@ -655,7 +655,7 @@ def apply_factor(value, factor):
 
 
 def get_funding_factor_per_period(
-    market_info: dict, is_long: bool,  period_in_seconds: int,
+    market_info: dict, is_long: bool, period_in_seconds: int,
     long_interest_usd: int, short_interest_usd: int
 ):
     """
