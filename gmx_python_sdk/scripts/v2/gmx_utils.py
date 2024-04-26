@@ -12,8 +12,12 @@ from datetime import datetime
 
 from concurrent.futures import ThreadPoolExecutor
 
-
-base_dir = os.path.join(os.path.dirname(__file__), '..', '..')
+# Get the absolute path of the current script
+current_script_path = os.path.abspath(__file__)
+base_dir = os.path.abspath(
+    os.path.join(current_script_path, '..', '..', '..', '..')
+)
+package_dir = base_dir + '/gmx_python_sdk/'
 print('base_dir', base_dir)
 
 logging.basicConfig(
@@ -30,7 +34,6 @@ def execute_call(call):
 
 
 def execute_threading(function_calls):
-
     with ThreadPoolExecutor() as executor:
         results = list(executor.map(execute_call, function_calls))
     return results
@@ -127,7 +130,6 @@ contract_map = {
 
 
 class Config:
-
     def __init__(
             self,
             filepath: str = os.path.join(base_dir, "config.yaml")
@@ -148,10 +150,14 @@ class Config:
 
     def load_config(self):
         try:
-            config = yaml.safe_load(open(os.path.join(base_dir, "config.yaml")))
+            config = yaml.safe_load(
+                open(os.path.join(base_dir, "config.yaml"))
+            )
             return self.test_config_format(config)
         except FileNotFoundError:
-            print(f"Config file '{self.file_path}' not found.\nLoading blank template!")
+            print(
+                f"Config file '{self.file_path}' not found.\nLoading blank template!"
+            )
             return self.skeleton
 
     def set_config(self, config):
@@ -160,7 +166,6 @@ class Config:
             yaml.dump(config, file)
 
     def test_config_format(self, config):
-
         if config.keys() == self.skeleton.keys():
             return config
         else:
@@ -178,15 +183,17 @@ class Config:
                 'user_wallet_address': None
                 }"""
             raise Exception(
-            "Please make sure your config file matches the following structure:\n\n{}".format(
-                structure
+                "Please make sure your config file matches the following structure:\n\n{}".format(
+                    structure
                 )
             )
 
 
 def get_config(filepath: str = os.path.join(base_dir, "config.yaml")):
-
     config = Config(filepath).load_config()
+    # print('config')
+    # from pprint import pprint
+    # pprint(config)
 
     if config['private_key'] is None:
         logging.warning("Private key not set!")
@@ -232,7 +239,6 @@ def convert_to_checksum_address(chain: str, address: str):
         checksum formatted address.
 
     """
-
     web3_obj = create_connection(chain=chain)
 
     # Added to support older versions of web3.py for now
@@ -268,6 +274,7 @@ def get_contract_object(web3_obj, contract_name: str, chain: str):
         open(
             os.path.join(
                 base_dir,
+                'gmx_python_sdk',
                 contract_map[chain][contract_name]["abi_path"]
             )
         )
@@ -296,7 +303,7 @@ def get_token_balance_contract(chain: str, contract_address: str):
     contract_abi = json.load(
         open(
             os.path.join(
-                base_dir,
+                package_dir,
                 'contracts',
                 'balance_abi.json'
             )
@@ -323,7 +330,6 @@ def get_tokens_address_dict(chain: str):
         dictionary containing available tokens to trade on GMX.
 
     """
-
     url = {
         "arbitrum": "https://arbitrum-api.gmxinfra.io/tokens",
         "avalanche": "https://avalanche-api.gmxinfra.io/tokens"
@@ -489,7 +495,9 @@ def create_hash_string(string: str):
     return create_hash(["string"], [string])
 
 
-def get_execution_price_and_price_impact(chain: str, params: dict, decimals: int):
+def get_execution_price_and_price_impact(
+    chain: str, params: dict, decimals: int
+):
     """
     Get the execution price and price impact for a position
 
@@ -503,7 +511,6 @@ def get_execution_price_and_price_impact(chain: str, params: dict, decimals: int
         number of decimals of the token being traded eg ETH == 18.
 
     """
-
     reader_contract_obj = get_reader_contract(chain)
 
     output = reader_contract_obj.functions.getExecutionPrice(
@@ -533,7 +540,6 @@ def get_estimated_swap_output(chain: str, params: dict):
         dictionary of the swap parameters.
 
     """
-
     reader_contract_obj = get_reader_contract(chain)
 
     output = reader_contract_obj.functions.getSwapAmountOut(
@@ -563,7 +569,6 @@ def get_estimated_deposit_amount_out(chain: str, params: dict):
         dictionary of the gm input parameters.
 
     """
-
     reader_contract_obj = get_reader_contract(chain)
 
     output = reader_contract_obj.functions.getDepositAmountOut(
@@ -591,7 +596,6 @@ def get_estimated_withdrawal_amount_out(chain: str, params: dict):
         dictionary of the gm parameters.
 
     """
-
     reader_contract_obj = get_reader_contract(chain)
 
     output = reader_contract_obj.functions.getWithdrawalAmountOut(
@@ -650,12 +654,10 @@ def apply_factor(value, factor):
     return value * factor / 10**30
 
 
-def get_funding_factor_per_period(market_info: dict,
-                                  is_long: bool,
-                                  period_in_seconds: int,
-                                  long_interest_usd: int,
-                                  short_interest_usd: int
-                                  ):
+def get_funding_factor_per_period(
+    market_info: dict, is_long: bool, period_in_seconds: int,
+    long_interest_usd: int, short_interest_usd: int
+):
     """
     For a given market, calculate the funding factor for a given period
 
@@ -674,7 +676,9 @@ def get_funding_factor_per_period(market_info: dict,
 
     """
 
-    funding_factor_per_second = market_info['funding_factor_per_second'] * 10**-28
+    funding_factor_per_second = (
+        market_info['funding_factor_per_second'] * 10**-28
+    )
 
     long_pays_shorts = market_info['is_long_pays_short']
 
@@ -717,9 +721,8 @@ def save_json_file_to_datastore(filename: str, data: dict):
         dictionary of data.
 
     """
-
     filepath = os.path.join(
-        base_dir,
+        package_dir,
         'data_store',
         filename
     )
@@ -738,7 +741,6 @@ def make_timestamped_dataframe(data):
         dataframe to add timestamp column to.
 
     """
-
     dataframe = pd.DataFrame(data, index=[0])
     dataframe['timestamp'] = datetime.now()
 
@@ -759,7 +761,7 @@ def save_csv_to_datastore(filename: str, dataframe):
     """
 
     archive_filepath = os.path.join(
-        base_dir,
+        package_dir,
         "data_store",
         filename
     )
@@ -775,7 +777,7 @@ def save_csv_to_datastore(filename: str, dataframe):
 
     dataframe.to_csv(
         os.path.join(
-            base_dir,
+            package_dir,
             "data_store",
             filename
         ),
@@ -805,7 +807,6 @@ def determine_swap_route(markets: dict, in_token: str, out_token: str):
         requires more than one market to pass thru.
 
     """
-
     if in_token == "0xaf88d065e77c8cC2239327C5EDb3A432268e5831":
         gmx_market_address = find_dictionary_by_key_value(
             markets,
@@ -840,5 +841,4 @@ def determine_swap_route(markets: dict, in_token: str, out_token: str):
 
 
 if __name__ == "__main__":
-
     output = get_tokens_address_dict('avalanche')
