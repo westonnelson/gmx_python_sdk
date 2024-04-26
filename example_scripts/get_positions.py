@@ -4,9 +4,9 @@ _set_paths()
 
 from decimal import Decimal
 
-from gmx_python_sdk.scripts.v2.get_markets import GetMarkets
+from gmx_python_sdk.scripts.v2.get.get_markets import Markets
 
-from gmx_python_sdk.scripts.v2.get_open_positions import GetOpenPositions
+from gmx_python_sdk.scripts.v2.get.get_open_positions import GetOpenPositions
 from gmx_python_sdk.scripts.v2.gmx_utils import (
     get_config, find_dictionary_by_key_value, get_tokens_address_dict,
     determine_swap_route
@@ -38,7 +38,7 @@ def get_positions(chain: str, address: str = None):
     if address is None:
         address = get_config()['user_wallet_address']
 
-    positions = GetOpenPositions(chain=chain).get_positions(address=address)
+    positions = GetOpenPositions(chain=chain, address=address).get_data()
 
     if len(positions) > 0:
         print("Open Positions for {}:".format(address))
@@ -107,17 +107,18 @@ def transform_open_position_to_order_parameters(
         )["address"]
 
         gmx_tokens = get_tokens_address_dict(chain)
+
         index_address = find_dictionary_by_key_value(
             gmx_tokens,
             "symbol",
-            raw_position_data['market_symbol']
+            raw_position_data['market_symbol'][0]
         )
         out_token_address = find_dictionary_by_key_value(
             gmx_tokens,
             "symbol",
             out_token
         )['address']
-        markets = GetMarkets(chain=chain).get_available_markets()
+        markets = Markets(chain=chain).get_available_markets()
 
         swap_path = []
 

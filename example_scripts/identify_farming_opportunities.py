@@ -5,12 +5,16 @@ _set_paths()
 import time
 import numpy as np
 from numerize import numerize
-from gmx_python_sdk.scripts.v2.get_available_liquidity import GetAvailableLiquidity
-from gmx_python_sdk.scripts.v2.get_borrow_apr import GetBorrowAPR
-from gmx_python_sdk.scripts.v2.get_funding_apr import GetFundingFee
-from gmx_python_sdk.scripts.v2.get_open_interest import OpenInterest
-from gmx_python_sdk.scripts.v2.order_argument_parser import OrderArgumentParser
-from gmx_python_sdk.scripts.v2.create_increase_order import IncreaseOrder
+from gmx_python_sdk.scripts.v2.get.get_available_liquidity import (
+    GetAvailableLiquidity
+)
+from gmx_python_sdk.scripts.v2.get.get_borrow_apr import GetBorrowAPR
+from gmx_python_sdk.scripts.v2.get.get_funding_apr import GetFundingFee
+from gmx_python_sdk.scripts.v2.get.get_open_interest import OpenInterest
+from gmx_python_sdk.scripts.v2.order.order_argument_parser import (
+    OrderArgumentParser
+)
+from gmx_python_sdk.scripts.v2.order.create_increase_order import IncreaseOrder
 
 
 def get_data(chain: str = 'arbitrum'):
@@ -23,13 +27,13 @@ def get_data(chain: str = 'arbitrum'):
         Tuple:
         Tuple containing funding data, borrow data, available liquidity, and open interest data.
     """
-    funding_data = GetFundingFee(chain=chain).get_funding_apr()
+    funding_data = GetFundingFee(chain=chain).get_data()
     time.sleep(0.5)
-    borrow_data = GetBorrowAPR(chain=chain).get_borrow_apr()
+    borrow_data = GetBorrowAPR(chain=chain).get_data()
     time.sleep(0.5)
-    available_liquidity = GetAvailableLiquidity(chain=chain).get_available_liquidity()
+    available_liquidity = GetAvailableLiquidity(chain=chain).get_data()
     time.sleep(0.5)
-    open_interest_data = OpenInterest(chain=chain).call_open_interest()
+    open_interest_data = OpenInterest(chain=chain).get_data()
 
     return funding_data, borrow_data, available_liquidity, open_interest_data
 

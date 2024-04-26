@@ -3,8 +3,9 @@ import os
 
 from web3 import Web3
 
-from .gmx_utils import create_connection, base_dir, get_config, \
-    convert_to_checksum_address
+from .gmx_utils import (
+    create_connection, base_dir, get_config, convert_to_checksum_address
+)
 
 
 def check_if_approved(
@@ -12,6 +13,7 @@ def check_if_approved(
         spender: str,
         token_to_approve: str,
         amount_of_tokens_to_spend: int,
+        max_fee_per_gas,
         approve: bool):
     """
     For a given chain, check if a given amount of tokens is approved for spend by a contract, and
@@ -50,9 +52,12 @@ def check_if_approved(
 
     token_checksum_address = convert_to_checksum_address(chain, token_to_approve)
 
-    token_contract_abi = json.load(open(os.path.join(base_dir,
-                                                     'contracts',
-                                                     'token_approval.json')))
+    token_contract_abi = json.load(open(os.path.join(
+        base_dir,
+        'gmx_python_sdk',
+        'contracts',
+        'token_approval.json'
+    )))
 
     token_contract_obj = connection.eth.contract(address=token_to_approve,
                                                  abi=token_contract_abi)
@@ -90,8 +95,8 @@ def check_if_approved(
             'value': 0,
             'chainId': 42161,
             'gas': 4000000,
-            'maxFeePerGas': Web3.to_wei('0.1', 'gwei'),
-            'maxPriorityFeePerGas': Web3.to_wei('0.1', 'gwei'),
+            'maxFeePerGas': int(max_fee_per_gas),
+            'maxPriorityFeePerGas': 0,
             'nonce': nonce})
 
         signed_txn = connection.eth.account.sign_transaction(raw_txn,
