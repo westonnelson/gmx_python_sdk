@@ -19,6 +19,6 @@ class DepositOrder(Deposit):
 
     def determine_gas_limits(self):
 
-        datastore = get_datastore_contract(self.chain)
+        datastore = get_datastore_contract(self.config)
         self._gas_limits = get_gas_limits(datastore)
         self._gas_limits_order_type = self._gas_limits["increase_order"]

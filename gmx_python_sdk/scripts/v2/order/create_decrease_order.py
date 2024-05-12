@@ -18,6 +18,6 @@ class DecreaseOrder(Order):
         self.order_builder(is_close=True)
 
     def determine_gas_limits(self):
-        datastore = get_datastore_contract(self.chain)
+        datastore = get_datastore_contract(self.config)
         self._gas_limits = get_gas_limits(datastore)
         self._gas_limits_order_type = self._gas_limits["decrease_order"]

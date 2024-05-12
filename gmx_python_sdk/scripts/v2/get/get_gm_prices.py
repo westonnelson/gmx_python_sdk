@@ -11,8 +11,9 @@ from ..keys import (
 
 
 class GMPrices(GetData):
-    def __init__(self, chain: str):
-        super().__init__(chain)
+    def __init__(self, config: str):
+        super().__init__(config)
+        self.config = config
         self.to_json = None
         self.to_csv = None
 
@@ -139,10 +140,10 @@ class GMPrices(GetData):
 
         for key, output in zip(mapper, threaded_output):
             # divide by 10**30 to turn into USD value
-            self.output[key] = output[0]/10**30
+            self.output[key] = output[0] / 10**30
 
         if self.to_json:
-            filename = "{}_gm_prices.json".format(self.chain)
+            filename = "{}_gm_prices.json".format(self.config.chain)
             save_json_file_to_datastore(
                 filename,
                 self.output
@@ -152,7 +153,7 @@ class GMPrices(GetData):
             dataframe = make_timestamped_dataframe(self.output)
 
             save_csv_to_datastore(
-                "{}_gm_prices.csv".format(self.chain),
+                "{}_gm_prices.csv".format(self.config.chain),
                 dataframe)
 
         return self.output

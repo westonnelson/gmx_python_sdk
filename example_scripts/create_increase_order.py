@@ -7,6 +7,11 @@ from gmx_python_sdk.scripts.v2.order.order_argument_parser import (
 )
 from gmx_python_sdk.scripts.v2.order.create_increase_order import IncreaseOrder
 
+from gmx_python_sdk.scripts.v2.gmx_utils import ConfigManager
+
+arbitrum_config_object = ConfigManager(chain='arbitrum')
+arbitrum_config_object.set_config()
+
 parameters = {
     "chain": 'arbitrum',
 
@@ -36,13 +41,14 @@ parameters = {
 
 
 order_parameters = OrderArgumentParser(
+    arbitrum_config_object,
     is_increase=True
 ).process_parameters_dictionary(
     parameters
 )
 
 order = IncreaseOrder(
-    chain=order_parameters['chain'],
+    config=arbitrum_config_object,
     market_key=order_parameters['market_key'],
     collateral_address=order_parameters['start_token_address'],
     index_token_address=order_parameters['index_token_address'],
@@ -52,14 +58,6 @@ order = IncreaseOrder(
         order_parameters['initial_collateral_delta']
     ),
     slippage_percent=order_parameters['slippage_percent'],
-    swap_path=order_parameters['swap_path']
+    swap_path=order_parameters['swap_path'],
+    debug_mode=True
 )
-
-
-# After we are done with operations, set private_key and
-# user_wallet_address to None so they are not saved locally
-new_config_dict['private_key'] = None
-new_config_dict['user_wallet_address'] = None
-
-# set config file
-config_obj.set_config(new_config_dict)

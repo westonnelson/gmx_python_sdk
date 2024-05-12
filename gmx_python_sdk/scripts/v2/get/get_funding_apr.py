@@ -9,8 +9,9 @@ from ..gmx_utils import (
 
 
 class GetFundingFee(GetData):
-    def __init__(self, chain: str, use_local_datastore: bool = False):
-        super().__init__(chain)
+    def __init__(self, config, use_local_datastore: bool = False):
+        super().__init__(config)
+        self.config = config
         self.use_local_datastore = use_local_datastore
 
     def _get_data_processing(self):
@@ -31,13 +32,13 @@ class GetFundingFee(GetData):
                     os.path.join(
                         base_dir,
                         "data_store",
-                        "{}_open_interest.json".format(self.chain)
+                        "{}_open_interest.json".format(self.config.chain)
                     )
                 )
             )
         else:
             open_interest = OpenInterest(
-                chain=self.chain
+                config=self.config
             ).get_data(to_json=False)
 
         print("\nGMX v2 Funding Rates (% per hour)")
@@ -127,4 +128,5 @@ class GetFundingFee(GetData):
 
 
 if __name__ == "__main__":
-    GetFundingFee(chain='arbitrum').get_data(to_csv=False)
+
+    pass

@@ -63,4 +63,5 @@ class OraclePrices:
 
 
 if __name__ == '__main__':
-    data = GetOraclePrices(chain="arbitrum").get_recent_prices()
+
+    pass

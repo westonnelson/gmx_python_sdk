@@ -7,7 +7,7 @@ from hexbytes import HexBytes
 from ..get.get_markets import Markets
 from ..get.get_oracle_prices import OraclePrices
 
-from ..gmx_utils import get_config, convert_to_checksum_address, \
+from ..gmx_utils import convert_to_checksum_address, \
     get_exchange_router_contract, create_connection, \
     determine_swap_route, contract_map, \
     get_estimated_withdrawal_amount_out
@@ -16,21 +16,19 @@ from ..approve_token_for_spend import check_if_approved
 
 from ..gas_utils import get_execution_fee
 
-CONFIG = get_config()
-
 
 class Withdraw:
 
     def __init__(
         self,
-        chain: str,
+        config,
         market_key: str,
         out_token: str,
         gm_amount: int,
         max_fee_per_gas: int = None,
         debug_mode: bool = False
     ) -> None:
-        self.chain = chain
+        self.config = config
         self.market_key = market_key
         self.out_token = out_token
         self.gm_amount = gm_amount
@@ -41,17 +39,17 @@ class Withdraw:
 
         if self.max_fee_per_gas is None:
             block = create_connection(
-                get_config()['arbitrum']['rpc']
+                config
             ).eth.get_block('latest')
             self.max_fee_per_gas = block['baseFeePerGas'] * 1.35
 
         self._exchange_router_contract_obj = get_exchange_router_contract(
-            chain=self.chain
+            config.chain
         )
 
-        self._connection = create_connection(chain=chain)
+        self._connection = create_connection(config)
 
-        self.all_markets_info = Markets(chain=self.chain).get_available_markets()
+        self.all_markets_info = Markets(chain=config.chain).get_available_markets()
 
         self.log = logging.getLogger(__name__)
         self.log.info("Creating order...")
@@ -65,9 +63,9 @@ class Withdraw:
         Check for Approval
 
         """
-        spender = contract_map[self.chain]["syntheticsrouter"]['contract_address']
+        spender = contract_map[self.config.chain]["syntheticsrouter"]['contract_address']
 
-        check_if_approved(self.chain,
+        check_if_approved(self.config.chain,
                           spender,
                           self.market_key,
                           self.gm_amount,
@@ -92,7 +90,7 @@ class Withdraw:
         ).build_transaction(
             {
                 'value': value_amount,
-                'chainId': 42161,
+                'chainId': self.config.chain_id,
 
                 # TODO - this is NOT correct
                 'gas': (
@@ -105,7 +103,7 @@ class Withdraw:
         )
         if not self.debug_mode:
             signed_txn = self._connection.eth.account.sign_transaction(
-                raw_txn, get_config()['private_key']
+                raw_txn, self.config.private_key
             )
             tx_hash = self._connection.eth.send_raw_transaction(
                 signed_txn.rawTransaction
@@ -119,10 +117,11 @@ class Withdraw:
 
     def create_withdraw_order(self):
 
-        user_wallet_address = CONFIG['user_wallet_address']
+        user_wallet_address = self.config.user_wallet_address
 
         self.determine_gas_limits()
-        self.check_for_approval()
+        if not self.debug_mode:
+            self.check_for_approval()
 
         should_unwrap_native_token = True
 
@@ -130,15 +129,15 @@ class Withdraw:
         ui_ref_address = "0x0000000000000000000000000000000000000000"
 
         user_wallet_address = convert_to_checksum_address(
-            self.chain,
+            self.config,
             user_wallet_address
         )
         eth_zero_address = convert_to_checksum_address(
-            self.chain,
+            self.config,
             eth_zero_address
         )
         ui_ref_address = convert_to_checksum_address(
-            self.chain,
+            self.config,
             ui_ref_address
         )
 
@@ -276,10 +275,12 @@ class Withdraw:
 
         """
 
-        data_store_contract_address = contract_map[self.chain]['datastore']['contract_address']
+        data_store_contract_address = contract_map[
+            self.config.chain
+        ]['datastore']['contract_address']
 
         market = self.all_markets_info[self.market_key]
-        oracle_prices_dict = OraclePrices(chain=self.chain).get_recent_prices()
+        oracle_prices_dict = OraclePrices(chain=self.config.chain).get_recent_prices()
 
         index_token_address = market['index_token_address']
         long_token_address = market['long_token_address']
@@ -311,4 +312,4 @@ class Withdraw:
             "ui_fee_receiver": "0x0000000000000000000000000000000000000000"
         }
 
-        return get_estimated_withdrawal_amount_out(self.chain, parameters)
+        return get_estimated_withdrawal_amount_out(self.config.chain, parameters)
