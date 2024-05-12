@@ -26,7 +26,7 @@ class SwapOrder(Order):
 
     def determine_gas_limits(self):
 
-        datastore = get_datastore_contract(self.chain)
+        datastore = get_datastore_contract(self.config)
         self._gas_limits = get_gas_limits(datastore)
         self._gas_limits_order_type = self._gas_limits["swap_order"]
 
@@ -51,7 +51,7 @@ class SwapOrder(Order):
 
         """
 
-        prices = OraclePrices(chain=self.chain).get_recent_prices()
+        prices = OraclePrices(chain=self.config.chain).get_recent_prices()
 
         try:
             in_token = Web3.to_checksum_address(in_token)
@@ -62,7 +62,7 @@ class SwapOrder(Order):
         # output after x number of swaps
         estimated_swap_output_parameters = {
             'data_store_address': (
-                contract_map[self.chain]["datastore"]['contract_address']
+                contract_map[self.config.chain]["datastore"]['contract_address']
             ),
             'market_addresses': [
                 market['gmx_market_address'],
@@ -90,7 +90,7 @@ class SwapOrder(Order):
         }
 
         estimated_swap_output = get_estimated_swap_output(
-            self.chain,
+            self.config.chain,
             estimated_swap_output_parameters
         )
 
