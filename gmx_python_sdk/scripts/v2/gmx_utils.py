@@ -129,100 +129,51 @@ contract_map = {
 }
 
 
-class Config:
-    def __init__(
-            self,
-            filepath: str = os.path.join(base_dir, "config.yaml")
-    ):
-        self.file_path = filepath
-        self.skeleton = {
-            'arbitrum': {
-                'rpc': None,
-                'chain_id': None
-            },
-            'avalanche': {
-                'rpc': None,
-                'chain_id': None
-            },
-            'private_key': None,
-            'user_wallet_address': None
-        }
+class ConfigManager:
 
-    def load_config(self):
-        try:
-            config = yaml.safe_load(
-                open(os.path.join(base_dir, "config.yaml"))
-            )
-            return self.test_config_format(config)
-        except FileNotFoundError:
-            print(
-                f"Config file '{self.file_path}' not found.\nLoading blank template!"
-            )
-            return self.skeleton
+    def __init__(self, chain: str):
 
-    def set_config(self, config):
-        print(f"Setting config file: '{self.file_path}'")
-        with open(self.file_path, 'w') as file:
-            yaml.dump(config, file)
+        self.chain = chain
+        self.rpc = None
+        self.chain_id = None
+        self.user_wallet_address = None
+        self.private_key = None
+        self.tg_bot_token = None
 
-    def test_config_format(self, config):
-        if config.keys() == self.skeleton.keys():
-            return config
-        else:
-            structure = """
-                {
-                'arbitrum': {
-                    'rpc': None,
-                    'chain_id': None
-                    },
-                'avalanche': {
-                    'rpc': None,
-                    'chain_id': None
-                    },
-                'private_key': None,
-                'user_wallet_address': None
-                }"""
-            raise Exception(
-                "Please make sure your config file matches the following structure:\n\n{}".format(
-                    structure
-                )
-            )
+    def set_config(self, filepath: str = os.path.join(base_dir, "config.yaml")):
+
+        with open(filepath, 'r') as file:
+            config_file = yaml.safe_load(file)
+
+        self.set_rpc(config_file['rpcs'][self.chain])
+        self.set_chain_id(config_file['chain_ids'][self.chain])
+        self.set_wallet_address(config_file['user_wallet_address'])
+        self.set_private_key(config_file['private_key'])
+
+    def set_rpc(self, value):
+        self.rpc = value
+
+    def set_chain_id(self, value):
+        self.chain_id = value
+
+    def set_wallet_address(self, value):
+        self.user_wallet_address = value
+
+    def set_private_key(self, value):
+        self.private_key = value
 
 
-def get_config(filepath: str = os.path.join(base_dir, "config.yaml")):
-    config = Config(filepath).load_config()
-    # print('config')
-    # from pprint import pprint
-    # pprint(config)
-
-    if config['private_key'] is None:
-        logging.warning("Private key not set!")
-
-    if config['arbitrum']['rpc'] is None:
-        logging.warning("Arbitrum RPC not set!")
-
-    if config['avalanche']['rpc'] is None:
-        logging.warning("Avalanche RPC not set!")
-
-    if config['user_wallet_address'] is None:
-        logging.warning("Wallet address not set!")
-
-    return config
-
-
-def create_connection(rpc: str = None, chain: str = None):
+def create_connection(config):
     """
     Create a connection to the blockchain
     """
-    if rpc is None:
-        rpc = get_config()[chain]['rpc']
 
-    web3_obj = Web3(Web3.HTTPProvider(rpc))
+    web3_obj = Web3(Web3.HTTPProvider(config.rpc))
 
     return web3_obj
 
 
-def convert_to_checksum_address(chain: str, address: str):
+def convert_to_checksum_address(config, address: str):
     """
     Convert a given address to checksum format
 
@@ -239,7 +190,7 @@ def convert_to_checksum_address(chain: str, address: str):
         checksum formatted address.
 
     """
-    web3_obj = create_connection(chain=chain)
+    web3_obj = create_connection(config)
 
     # Added to support older versions of web3.py for now
     try:
@@ -285,7 +236,7 @@ def get_contract_object(web3_obj, contract_name: str, chain: str):
     )
 
 
-def get_token_balance_contract(chain: str, contract_address: str):
+def get_token_balance_contract(config: str, contract_address: str):
     """
     Get the contract object required to query a users token balance
 
@@ -297,9 +248,8 @@ def get_token_balance_contract(chain: str, contract_address: str):
         the token to determine the balance of.
 
     """
-    rpc = get_config()[chain]['rpc']
 
-    web3_obj = create_connection(rpc)
+    web3_obj = create_connection(config)
     contract_abi = json.load(
         open(
             os.path.join(
@@ -356,7 +306,7 @@ def get_tokens_address_dict(chain: str):
     return token_address_dict
 
 
-def get_reader_contract(chain: str):
+def get_reader_contract(config):
     """
     Get a reader contract web3_obj for a given chain
 
@@ -366,17 +316,16 @@ def get_reader_contract(chain: str):
         avalanche or arbitrum.
 
     """
-    rpc = get_config()[chain]['rpc']
 
-    web3_obj = create_connection(rpc)
+    web3_obj = create_connection(config)
     return get_contract_object(
         web3_obj,
         'syntheticsreader',
-        chain
+        config.chain
     )
 
 
-def get_event_emitter_contract(chain: str):
+def get_event_emitter_contract(config):
     """
     Get a event emitter contract web3_obj for a given chain
 
@@ -386,17 +335,16 @@ def get_event_emitter_contract(chain: str):
         avalanche or arbitrum.
 
     """
-    rpc = get_config()[chain]['rpc']
 
-    web3_obj = create_connection(rpc)
+    web3_obj = create_connection(config)
     return get_contract_object(
         web3_obj,
         'eventemitter',
-        chain
+        config.chain
     )
 
 
-def get_datastore_contract(chain: str):
+def get_datastore_contract(config):
     """
     Get a datastore contract web3_obj for a given chain
 
@@ -406,17 +354,16 @@ def get_datastore_contract(chain: str):
         avalanche or arbitrum.
 
     """
-    rpc = get_config()[chain]['rpc']
 
-    web3_obj = create_connection(rpc)
+    web3_obj = create_connection(config)
     return get_contract_object(
         web3_obj,
         'datastore',
-        chain
+        config.chain
     )
 
 
-def get_exchange_router_contract(chain: str):
+def get_exchange_router_contract(config):
     """
     Get a exchange router contract web3_obj for a given chain
 
@@ -426,17 +373,16 @@ def get_exchange_router_contract(chain: str):
         avalanche or arbitrum.
 
     """
-    rpc = get_config()[chain]['rpc']
 
-    web3_obj = create_connection(rpc)
+    web3_obj = create_connection(config)
     return get_contract_object(
         web3_obj,
         'exchangerouter',
-        chain
+        config.chain
     )
 
 
-def create_signer(chain: str):
+def create_signer(config: str):
     """
     Creastea a signer for a given chain
 
@@ -446,10 +392,9 @@ def create_signer(chain: str):
         avalanche or arbitrum.
 
     """
-    config = get_config()
 
-    private_key = config['private_key']
-    rpc = config[chain]['rpc']
+    private_key = config.private_key
+    rpc = config.rpc
     web3_obj = create_connection(rpc)
 
     return web3_obj.eth.account.from_key(private_key)
@@ -496,7 +441,7 @@ def create_hash_string(string: str):
 
 
 def get_execution_price_and_price_impact(
-    chain: str, params: dict, decimals: int
+    config, params: dict, decimals: int
 ):
     """
     Get the execution price and price impact for a position
@@ -511,7 +456,7 @@ def get_execution_price_and_price_impact(
         number of decimals of the token being traded eg ETH == 18.
 
     """
-    reader_contract_obj = get_reader_contract(chain)
+    reader_contract_obj = get_reader_contract(config)
 
     output = reader_contract_obj.functions.getExecutionPrice(
         params['data_store_address'],
@@ -527,7 +472,7 @@ def get_execution_price_and_price_impact(
             'price_impact_usd': output[0] / 10**PRECISION}
 
 
-def get_estimated_swap_output(chain: str, params: dict):
+def get_estimated_swap_output(config, params: dict):
     """
     For a given chain and requested swap get the amount of tokens
     out and the price impact the swap will have.
@@ -540,7 +485,7 @@ def get_estimated_swap_output(chain: str, params: dict):
         dictionary of the swap parameters.
 
     """
-    reader_contract_obj = get_reader_contract(chain)
+    reader_contract_obj = get_reader_contract(config)
 
     output = reader_contract_obj.functions.getSwapAmountOut(
         params['data_store_address'],
@@ -556,7 +501,7 @@ def get_estimated_swap_output(chain: str, params: dict):
             }
 
 
-def get_estimated_deposit_amount_out(chain: str, params: dict):
+def get_estimated_deposit_amount_out(config, params: dict):
     """
     For a given chain and requested deposit amount get the amount of
     gm expected to be output.
@@ -569,7 +514,7 @@ def get_estimated_deposit_amount_out(chain: str, params: dict):
         dictionary of the gm input parameters.
 
     """
-    reader_contract_obj = get_reader_contract(chain)
+    reader_contract_obj = get_reader_contract(config)
 
     output = reader_contract_obj.functions.getDepositAmountOut(
         params['data_store_address'],
@@ -583,7 +528,7 @@ def get_estimated_deposit_amount_out(chain: str, params: dict):
     return output
 
 
-def get_estimated_withdrawal_amount_out(chain: str, params: dict):
+def get_estimated_withdrawal_amount_out(config, params: dict):
     """
     For a given chain and requested withdrawal amount get the amount of
     long/shorts tokens expected to be output.
@@ -596,7 +541,7 @@ def get_estimated_withdrawal_amount_out(chain: str, params: dict):
         dictionary of the gm parameters.
 
     """
-    reader_contract_obj = get_reader_contract(chain)
+    reader_contract_obj = get_reader_contract(config)
 
     output = reader_contract_obj.functions.getWithdrawalAmountOut(
         params['data_store_address'],
@@ -841,4 +786,5 @@ def determine_swap_route(markets: dict, in_token: str, out_token: str):
 
 
 if __name__ == "__main__":
-    output = get_tokens_address_dict('avalanche')
+    arbitrum_config_object = ConfigManager(chain='arbitrum')
+    arbitrum_config_object.set_config()

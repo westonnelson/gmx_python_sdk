@@ -15,8 +15,8 @@ from ..keys import (
 
 
 class GetAvailableLiquidity(GetData):
-    def __init__(self, chain: str, use_local_datastore: bool = False):
-        super().__init__(chain)
+    def __init__(self, config: str, use_local_datastore: bool = False):
+        super().__init__(config)
 
     def _get_data_processing(self) -> dict:
         """
@@ -30,7 +30,7 @@ class GetAvailableLiquidity(GetData):
         """
         self.log.info("GMX v2 Available Liquidity")
 
-        open_interest = OpenInterest(chain=self.chain).get_data(
+        open_interest = OpenInterest(self.config).get_data(
             to_json=False
         )
 
@@ -105,7 +105,7 @@ class GetAvailableLiquidity(GetData):
             short_precision_list.append(short_precision)
 
             # Calculate token price
-            prices = OraclePrices(chain=self.chain).get_recent_prices()
+            prices = OraclePrices(chain=self.config.chain).get_recent_prices()
             token_price = np.median(
                 [
                     float(
@@ -251,7 +251,7 @@ class GetAvailableLiquidity(GetData):
         open_interest_reserve_factor: Any  # Type: web3._utils.datatypes.getUint
 
         # get web3 datastore object
-        datastore = get_datastore_contract(self.chain)
+        datastore = get_datastore_contract(self.config)
 
         # get hashed keys for datastore
         pool_amount_hash_data = pool_amount_key(

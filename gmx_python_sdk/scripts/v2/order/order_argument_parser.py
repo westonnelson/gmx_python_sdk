@@ -7,8 +7,8 @@ from ..gmx_utils import get_tokens_address_dict, determine_swap_route
 
 class OrderArgumentParser:
 
-    def __init__(self, is_increase: bool = False, is_decrease: bool = False, is_swap: bool = False):
-
+    def __init__(self, config, is_increase: bool = False, is_decrease: bool = False, is_swap: bool = False):
+        self.config = config
         self.parameters_dict = None
         self.is_increase = is_increase
         self.is_decrease = is_decrease
@@ -141,7 +141,7 @@ class OrderArgumentParser:
 
         # use the index token address to find the market key from get_available_markets
         self.parameters_dict['market_key'] = self.find_market_key_by_index_address(
-            Markets(chain=self.parameters_dict['chain']).get_available_markets(),
+            Markets(self.config).get_available_markets(),
             index_token_address
         )
 
@@ -290,7 +290,7 @@ class OrderArgumentParser:
             market_key = "0x47c031236e19d024b42f8AE6780E44A573170703"
 
         market = Markets(
-            chain=self.parameters_dict['chain']
+            self.config
         ).get_available_markets()[market_key]
 
         # if collateral address doesnt match long or short token address, no bueno

@@ -1,8 +1,8 @@
-arbitrum:
-  rpc: 'https://arb-mainnet.g.alchemy.com/v2/7a5xQqD5uxAPRvpkATRKy1RnzBdpe5Pm'
-  chain_id: chain_id
-avalanche:
-  rpc: 'https://arb-mainnet.g.alchemy.com/v2/7a5xQqD5uxAPRvpkATRKy1RnzBdpe5Pm'
-  chain_id: chain_id
+rpcs:
+  arbitrum: arbitrum_rpc
+  avalanche: avax_rpc
+chain_ids:
+  arbitrum: 42161
+  avalanche: 43114
 private_key: private_key
-user_wallet_address: wallet_address
+user_wallet_address: user_wallet_address

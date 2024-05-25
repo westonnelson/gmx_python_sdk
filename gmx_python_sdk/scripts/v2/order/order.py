@@ -7,7 +7,7 @@ from web3 import Web3
 from ..get.get_markets import Markets
 from ..get.get_oracle_prices import OraclePrices
 from ..gmx_utils import (
-    get_exchange_router_contract, create_connection, get_config, contract_map,
+    get_exchange_router_contract, create_connection, contract_map,
     PRECISION, get_execution_price_and_price_impact, order_type as order_types,
     decrease_position_swap_type as decrease_position_swap_types,
     convert_to_checksum_address
@@ -19,13 +19,13 @@ from ..approve_token_for_spend import check_if_approved
 class Order:
 
     def __init__(
-        self, chain: str, market_key: str, collateral_address: str,
+        self, config: str, market_key: str, collateral_address: str,
         index_token_address: str, is_long: bool, size_delta: float,
         initial_collateral_delta_amount: str, slippage_percent: float,
         swap_path: list, max_fee_per_gas: int = None, debug_mode: bool = False
     ) -> None:
 
-        self.chain = chain
+        self.config = config
         self.market_key = market_key
         self.collateral_address = collateral_address
         self.index_token_address = index_token_address
@@ -39,14 +39,14 @@ class Order:
 
         if self.max_fee_per_gas is None:
             block = create_connection(
-                get_config()['arbitrum']['rpc']
+                config
             ).eth.get_block('latest')
             self.max_fee_per_gas = block['baseFeePerGas'] * 1.35
 
         self._exchange_router_contract_obj = get_exchange_router_contract(
-            chain=self.chain
+            config=self.config
         )
-        self._connection = create_connection(chain=self.chain)
+        self._connection = create_connection(config)
         self._is_swap = False
 
         self.log = logging.getLogger(__name__)
@@ -59,9 +59,9 @@ class Order:
         """
         Check for Approval
         """
-        spender = contract_map[self.chain]["syntheticsrouter"]['contract_address']
+        spender = contract_map[self.config.chain]["syntheticsrouter"]['contract_address']
 
-        check_if_approved(self.chain,
+        check_if_approved(self.config,
                           spender,
                           self.collateral_address,
                           self.initial_collateral_delta_amount,
@@ -89,7 +89,7 @@ class Order:
         ).build_transaction(
             {
                 'value': value_amount,
-                'chainId': 42161,
+                'chainId': self.config.chain_id,
 
                 # TODO - this is NOT correct
                 'gas': (
@@ -104,7 +104,7 @@ class Order:
 
         if not self.debug_mode:
             signed_txn = self._connection.eth.account.sign_transaction(
-                raw_txn, get_config()['private_key']
+                raw_txn, self.config.private_key
             )
             tx_hash = self._connection.eth.send_raw_transaction(
                 signed_txn.rawTransaction
@@ -174,7 +174,6 @@ class Order:
         Create Order
         """
 
-        config = get_config()
         self.determine_gas_limits()
         gas_price = self._connection.eth.gas_price
         execution_fee = int(
@@ -186,7 +185,7 @@ class Order:
         )
 
         # Dont need to check approval when closing
-        if not is_close:
+        if not is_close and not self.debug_mode:
             self.check_for_approval()
 
         # Up execution fee for swap, more complex
@@ -199,9 +198,9 @@ class Order:
             # 20% buffer
             execution_fee = int(execution_fee * 1.2)
 
-        markets = Markets(chain=self.chain).get_available_markets()
+        markets = Markets(self.config).get_available_markets()
         initial_collateral_delta_amount = self.initial_collateral_delta_amount
-        prices = OraclePrices(chain=self.chain).get_recent_prices()
+        prices = OraclePrices(chain=self.config.chain).get_recent_prices()
         size_delta_price_price_impact = self.size_delta
 
         # when decreasing size delta must be negative
@@ -252,7 +251,7 @@ class Order:
         referral_code = HexBytes(
             "0x0000000000000000000000000000000000000000000000000000000000000000"
         )
-        user_wallet_address = config['user_wallet_address']
+        user_wallet_address = self.config.user_wallet_address
         eth_zero_address = "0x0000000000000000000000000000000000000000"
         ui_ref_address = "0x0000000000000000000000000000000000000000"
         try:
@@ -263,7 +262,7 @@ class Order:
         # parameters using to calculate execution price
         execution_price_parameters = {
             'data_store_address': (
-                contract_map[self.chain]["datastore"]['contract_address']
+                contract_map[self.config.chain]["datastore"]['contract_address']
             ),
             'market_key': self.market_key,
             'index_token_price': [
@@ -297,7 +296,7 @@ class Order:
             gmx_market_address = "0x0000000000000000000000000000000000000000"
 
         execution_price_and_price_impact_dict = get_execution_price_and_price_impact(
-            self.chain,
+            self.config,
             execution_price_parameters,
             decimals
         )
@@ -328,19 +327,19 @@ class Order:
                     raise Exception("Execution price falls outside acceptable price!")
 
         user_wallet_address = convert_to_checksum_address(
-            self.chain,
+            self.config,
             user_wallet_address
         )
         eth_zero_address = convert_to_checksum_address(
-            self.chain,
+            self.config,
             eth_zero_address
         )
         ui_ref_address = convert_to_checksum_address(
-            self.chain,
+            self.config,
             ui_ref_address
         )
         collateral_address = convert_to_checksum_address(
-            self.chain,
+            self.config,
             self.collateral_address
         )
 

@@ -6,8 +6,8 @@ from .get_oracle_prices import OraclePrices
 
 
 class Markets:
-    def __init__(self, chain):
-        self.chain = chain
+    def __init__(self, config):
+        self.config = config
         self.info = self._process_markets()
 
     def get_index_token_address(self, market_key: str) -> str:
@@ -57,15 +57,15 @@ class Markets:
             tuple of raw output from the reader contract.
 
         """
-        reader_contract = get_reader_contract(self.chain)
+        reader_contract = get_reader_contract(self.config)
         data_store_contract_address = (
-            contract_map[self.chain]['datastore']['contract_address']
+            contract_map[self.config.chain]['datastore']['contract_address']
         )
 
         return reader_contract.functions.getMarkets(
             data_store_contract_address,
             0,
-            20
+            18
         ).call()
 
     def _process_markets(self):
@@ -78,7 +78,7 @@ class Markets:
             dictionary decoded market data.
 
         """
-        token_address_dict = get_tokens_address_dict(self.chain)
+        token_address_dict = get_tokens_address_dict(self.config.chain)
         raw_markets = self._get_available_markets_raw()
 
         decoded_markets = {}
@@ -133,7 +133,7 @@ class Markets:
     def _check_if_index_token_in_signed_prices_api(self, index_token_address):
 
         try:
-            prices = OraclePrices(chain=self.chain).get_recent_prices()
+            prices = OraclePrices(chain=self.config.chain).get_recent_prices()
 
             if index_token_address == "0x0000000000000000000000000000000000000000":
                 return True

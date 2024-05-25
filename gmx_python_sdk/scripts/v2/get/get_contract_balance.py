@@ -7,10 +7,10 @@ from ..gmx_utils import get_token_balance_contract, save_json_file_to_datastore
 
 
 class GetPoolTVL(GetData):
-    def __init__(self, chain):
-        super().__init__(chain)
+    def __init__(self, config):
+        super().__init__(config)
         self.oracle_prices_dict = OraclePrices(
-            chain=chain
+            chain=config.chain
         ).get_recent_prices
 
     def get_pool_balances(self, to_json: bool = False):
@@ -28,11 +28,11 @@ class GetPoolTVL(GetData):
             dictionary of total USD value per pool.
 
         """
-        markets = Markets(chain=self.chain).get_available_markets()
+        markets = Markets(self.config).get_available_markets()
         pool_tvl_dict = {}
 
         for market in markets:
-            print("\n"+markets[market]['market_symbol'])
+            print("\n" + markets[market]['market_symbol'])
 
             long_token_address = markets[market]['long_token_address']
 
@@ -62,13 +62,13 @@ class GetPoolTVL(GetData):
 
             print(
                 "Pool USD Value: ${}".format(
-                    long_usd_balance+short_token_balance
+                    long_usd_balance + short_token_balance
                 )
             )
 
         if to_json:
             save_json_file_to_datastore(
-                "{}_pool_tvl.json".format(self.chain),
+                "{}_pool_tvl.json".format(self.config.chain),
                 pool_tvl_dict
             )
         else:
@@ -99,14 +99,14 @@ class GetPoolTVL(GetData):
 
         """
         long_token_contract = get_token_balance_contract(
-            self.chain,
+            self.config,
             long_token_address
         )
         long_token_balance = long_token_contract.functions.balanceOf(
             market
         ).call() / 10 ** long_token_contract.functions.decimals().call()
         short_token_contract = get_token_balance_contract(
-            self.chain,
+            self.config,
             short_token_address
         )
         short_token_balance = short_token_contract.functions.balanceOf(

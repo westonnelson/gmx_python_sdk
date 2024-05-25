@@ -7,8 +7,8 @@ from ..gmx_utils import execute_threading
 
 
 class OpenInterest(GetData):
-    def __init__(self, chain: str):
-        super().__init__(chain)
+    def __init__(self, config: str):
+        super().__init__(config)
 
     def _get_data_processing(self):
         """
@@ -21,7 +21,7 @@ class OpenInterest(GetData):
 
         """
         oracle_prices_dict = OraclePrices(
-            chain=self.chain
+            self.config.chain
         ).get_recent_prices()
         print("GMX v2 Open Interest\n")
 
@@ -57,6 +57,7 @@ class OpenInterest(GetData):
 
             # If the market is a synthetic one we need to use the decimals
             # from the index token
+            print(market_key)
             try:
                 if self.markets.is_synthetic(market_key):
                     decimal_factor = self.markets.get_decimal_factor(
@@ -68,7 +69,10 @@ class OpenInterest(GetData):
                         long=True
                     )
             except KeyError:
-                pass
+                decimal_factor = self.markets.get_decimal_factor(
+                    market_key,
+                    long=True
+                )
 
             oracle_factor = (30 - decimal_factor)
             precision = 10 ** (decimal_factor + oracle_factor)

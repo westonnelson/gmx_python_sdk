@@ -4,24 +4,24 @@ from .get_markets import Markets
 from .get_oracle_prices import OraclePrices
 from ..gmx_utils import (
     get_reader_contract, contract_map, save_json_file_to_datastore,
-    save_csv_to_datastore
+    save_csv_to_datastore, make_timestamped_dataframe
 )
 
 
 class GetData:
     def __init__(
-        self, chain: str, use_local_datastore: bool = False,
+        self, config: str, use_local_datastore: bool = False,
         filter_swap_markets: bool = True
     ):
-        self.chain = chain
+        self.config = config
         self.use_local_datastore = use_local_datastore
         self.filter_swap_markets = filter_swap_markets
 
         self.log = logging.getLogger(self.__class__.__name__)
-        self.markets = Markets(self.chain)
-        self.reader_contract = get_reader_contract(self.chain)
+        self.markets = Markets(config)
+        self.reader_contract = get_reader_contract(config)
         self.data_store_contract_address = (
-            contract_map[self.chain]['datastore']['contract_address']
+            contract_map[self.config.chain]['datastore']['contract_address']
         )
         self.output = {
             "long": {},
@@ -39,13 +39,14 @@ class GetData:
 
         if to_json:
             save_json_file_to_datastore(
-                "{}_data.json".format(self.chain),
+                "{}_data.json".format(self.config.chain),
                 data
             )
 
         if to_csv:
+            data = make_timestamped_dataframe(data)
             save_csv_to_datastore(
-                "{}_data.csv".format(self.chain),
+                "{}_data.csv".format(self.config.chain),
                 data
             )
 
@@ -128,7 +129,7 @@ class GetData:
             unexecuted reader contract object.
 
         """
-        oracle_prices_dict = OraclePrices(self.chain).get_recent_prices()
+        oracle_prices_dict = OraclePrices(self.config.chain).get_recent_prices()
 
         try:
             prices = (

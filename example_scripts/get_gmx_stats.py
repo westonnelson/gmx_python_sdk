@@ -17,92 +17,94 @@ from gmx_python_sdk.scripts.v2.get.get_open_interest import OpenInterest
 from gmx_python_sdk.scripts.v2.get.get_oracle_prices import OraclePrices
 from gmx_python_sdk.scripts.v2.get.get_pool_tvl import GetPoolTVL
 
+from gmx_python_sdk.scripts.v2.gmx_utils import ConfigManager
+
 
 class GetGMXv2Stats:
 
-    def __init__(self, to_json, to_csv):
-
+    def __init__(self, config, to_json, to_csv):
+        self.config = config
         self.to_json = to_json
         self.to_csv = to_csv
 
-    def get_available_liquidity(self, chain):
+    def get_available_liquidity(self):
 
         return GetAvailableLiquidity(
-            chain=chain
+            self.config
         ).get_data(
             to_csv=self.to_csv,
             to_json=self.to_json
         )
 
-    def get_borrow_apr(self, chain):
+    def get_borrow_apr(self):
 
         return GetBorrowAPR(
-            chain=chain
+            self.config
         ).get_data(
             to_csv=self.to_csv,
             to_json=self.to_json
         )
 
-    def get_claimable_fees(self, chain):
+    def get_claimable_fees(self):
 
         return GetClaimableFees(
-            chain=chain
+            self.config
         ).get_data(
             to_csv=self.to_csv,
             to_json=self.to_json
         )
 
-    def get_contract_tvl(self, chain):
+    def get_contract_tvl(self):
 
         return ContractTVL(
-            chain=chain
+            self.config
         ).get_pool_balances(
             to_json=self.to_json
         )
 
-    def get_funding_apr(self, chain):
+    def get_funding_apr(self):
 
         return GetFundingFee(
-            chain=chain
+            self.config
         ).get_data(
             to_csv=self.to_csv,
             to_json=self.to_json
         )
 
-    def get_gm_price(self, chain):
+    def get_gm_price(self):
 
         return GMPrices(
-            chain=chain
+            self.config
         ).get_price_traders(
             to_csv=self.to_csv,
             to_json=self.to_json
         )
 
-    def get_available_markets(self, chain):
+    def get_available_markets(self):
 
         return Markets(
-            chain=chain
+            self.config
         ).get_available_markets()
 
-    def get_open_interest(self, chain):
+    def get_open_interest(self):
 
         return OpenInterest(
-            chain=chain
+            self.config
         ).get_data(
             to_csv=self.to_csv,
             to_json=self.to_json
         )
 
-    def get_oracle_prices(self, chain):
+    def get_oracle_prices(self):
 
         return OraclePrices(
-            chain=chain
+            self.config.chain
         ).get_recent_prices()
 
-    def get_pool_tvl(self, chain):
+    def get_pool_tvl(self):
 
         return GetPoolTVL(
-            chain=chain
+            self.config
         ).get_pool_balances(
             to_csv=self.to_csv,
             to_json=self.to_json
@@ -111,22 +113,25 @@ class GetGMXv2Stats:
 
 if __name__ == "__main__":
 
-    to_json = False
-    to_csv = False
-    chain = "arbitrum"
+    to_json = True
+    to_csv = True
+
+    config = ConfigManager(chain='avalanche')
+    config.set_config()
 
     stats_object = GetGMXv2Stats(
+        config=config,
         to_json=to_json,
         to_csv=to_csv
     )
 
-    # liquidity = stats_object.get_available_liquidity(chain=chain)
-    # borrow_apr = stats_object.get_borrow_apr(chain=chain)
-    # claimable_fees = stats_object.get_claimable_fees(chain=chain)
-    # contract_tvl = stats_object.get_contract_tvl(chain=chain)
-    funding_apr = stats_object.get_funding_apr(chain=chain)
-    # gm_prices = stats_object.get_gm_price(chain=chain)
-    # markets = stats_object.get_available_markets(chain=chain)
-    # open_interest = stats_object.get_open_interest(chain=chain)
-    # oracle_prices = stats_object.get_oracle_prices(chain=chain)
-    # pool_tvl = stats_object.get_pool_tvl(chain=chain)
+    markets = stats_object.get_available_markets()
+    liquidity = stats_object.get_available_liquidity()
+    borrow_apr = stats_object.get_borrow_apr()
+    claimable_fees = stats_object.get_claimable_fees()
+    contract_tvl = stats_object.get_contract_tvl()
+    funding_apr = stats_object.get_funding_apr()
+    gm_prices = stats_object.get_gm_price()
+    open_interest = stats_object.get_open_interest()
+    oracle_prices = stats_object.get_oracle_prices()
+    pool_tvl = stats_object.get_pool_tvl()

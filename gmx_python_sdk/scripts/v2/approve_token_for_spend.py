@@ -4,12 +4,12 @@ import os
 from web3 import Web3
 
 from .gmx_utils import (
-    create_connection, base_dir, get_config, convert_to_checksum_address
+    create_connection, base_dir, convert_to_checksum_address
 )
 
 
 def check_if_approved(
-        chain: str,
+        config,
         spender: str,
         token_to_approve: str,
         amount_of_tokens_to_spend: int,
@@ -39,18 +39,21 @@ def check_if_approved(
 
     """
 
-    config = get_config()
-    connection = create_connection(chain=chain)
+    connection = create_connection(config)
 
     if token_to_approve == "0x47904963fc8b2340414262125aF798B9655E58Cd":
         token_to_approve = "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f"
 
-    spender_checksum_address = convert_to_checksum_address(chain, spender)
+    spender_checksum_address = convert_to_checksum_address(
+        config, spender
+    )
 
     # User wallet address will be taken from config file
-    user_checksum_address = convert_to_checksum_address(chain, config['user_wallet_address'])
+    user_checksum_address = convert_to_checksum_address(
+        config,
+        config.user_wallet_address)
 
-    token_checksum_address = convert_to_checksum_address(chain, token_to_approve)
+    token_checksum_address = convert_to_checksum_address(config, token_to_approve)
 
     token_contract_abi = json.load(open(os.path.join(
         base_dir,
@@ -93,14 +96,14 @@ def check_if_approved(
             *arguments
         ).build_transaction({
             'value': 0,
-            'chainId': 42161,
+            'chainId': config.chain_id,
             'gas': 4000000,
             'maxFeePerGas': int(max_fee_per_gas),
             'maxPriorityFeePerGas': 0,
             'nonce': nonce})
 
         signed_txn = connection.eth.account.sign_transaction(raw_txn,
-                                                             config['private_key'])
+                                                             config.private_key)
         tx_hash = connection.eth.send_raw_transaction(signed_txn.rawTransaction)
 
         print("Txn submitted!")
@@ -116,14 +119,4 @@ def check_if_approved(
 
 if __name__ == "__main__":
 
-    chain = 'arbitrum'
-    spender = "0x7452c558d45f8afC8c83dAe62C3f8A5BE19c71f6"
-    token_to_approve = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
-    amount_of_tokens_to_spend = 1
-    approve = True
-
-    test = check_if_approved(chain,
-                             spender,
-                             token_to_approve,
-                             amount_of_tokens_to_spend,
-                             approve)
+    pass

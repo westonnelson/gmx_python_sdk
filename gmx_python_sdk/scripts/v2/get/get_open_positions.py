@@ -10,9 +10,9 @@ chain = 'arbitrum'
 
 
 class GetOpenPositions(GetData):
-    def __init__(self, chain: str, address: str):
-        super().__init__(chain)
-        self.address = convert_to_checksum_address(self.chain, address)
+    def __init__(self, config: str, address: str):
+        super().__init__(config)
+        self.address = convert_to_checksum_address(config, address)
 
     def get_data(self):
         """
@@ -42,7 +42,7 @@ class GetOpenPositions(GetData):
             logging.info(
                 'No positions open for address: "{}"" on {}.'.format(
                     address,
-                    self.chain.title()
+                    self.config.chain.title()
                 )
             )
         processed_positions = {}

@@ -9,8 +9,8 @@ from ..keys import get_datastore_contract, claimable_fee_amount_key
 
 
 class GetClaimableFees(GetData):
-    def __init__(self, chain: str):
-        super().__init__(chain)
+    def __init__(self, config: str):
+        super().__init__(config)
 
     def _get_data_processing(self):
         """
@@ -47,7 +47,7 @@ class GetClaimableFees(GetData):
                 self._long_token_address
             )
 
-            prices = OraclePrices(chain=self.chain).get_recent_prices()
+            prices = OraclePrices(chain=self.config.chain).get_recent_prices()
             long_token_price = np.median(
                 [
                     float(
@@ -138,7 +138,7 @@ class GetClaimableFees(GetData):
 
         """
 
-        datastore = get_datastore_contract(self.chain)
+        datastore = get_datastore_contract(self.config)
 
         # create hashed key to query the datastore
         claimable_fees_amount_hash_data = claimable_fee_amount_key(

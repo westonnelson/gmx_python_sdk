@@ -2,22 +2,14 @@ from utils import _set_paths
 
 _set_paths()
 
-from gmx_python_sdk.scripts.v2.gmx_utils import Config, get_config
+from gmx_python_sdk.scripts.v2.gmx_utils import ConfigManager
 
-# or omit argument to save/load config in base directory
-config_obj = Config()
+arbitrum_config_object = ConfigManager(chain='arbitrum')
 
-# Try load config, will create base template if it doesnt exist
-new_config_dict = config_obj.load_config()
+# Call this method to set your config object attributes from a config file
+# Can also pass kwarg 'filepath' to specify path to config file
+arbitrum_config_object.set_config()
 
-# overwrite dict values
-new_config_dict['arbitrum']['rpc'] = "rpc_url"
-new_config_dict['avalanche']['rpc'] = "rpc_url"
-new_config_dict['private_key'] = "private_key"
-new_config_dict['user_wallet_address'] = "user_wallet_address"
-
-# Set config file
-config_obj.set_config(new_config_dict)
-
-# once set, you can use get_config to load directionary of config params
-get_config()
+# overwrite object attributes like so
+arbitrum_config_object.set_rpc('https://test.org')
+print(arbitrum_config_object.rpc)
