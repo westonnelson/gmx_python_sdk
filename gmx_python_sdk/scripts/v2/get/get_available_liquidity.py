@@ -179,6 +179,9 @@ class GetAvailableLiquidity(GetData):
             if long_open_interest_reserve_factor < long_reserve_factor:
                 long_reserve_factor = long_open_interest_reserve_factor
 
+            if "2" in token_symbol:
+                long_pool_amount = long_pool_amount / 2
+
             long_max_reserved_tokens = (
                 long_pool_amount * long_reserve_factor
             )
@@ -207,6 +210,21 @@ class GetAvailableLiquidity(GetData):
                     reserved_short
                 )
             )
+
+            # If its a single side market need to calculate on token
+            # amount rather than $ value
+            if "2" in token_symbol:
+                short_pool_amount = short_pool_amount / 2
+
+                short_max_reserved_tokens = (
+                    short_pool_amount * short_reserve_factor
+                )
+
+                short_max_reserved_usd = (
+                    short_max_reserved_tokens / short_precision * token_price
+                )
+
+                short_liquidity = short_max_reserved_usd - float(reserved_short)
 
             self.log.info(
                 "Available Short Liquidity: ${}".format(
