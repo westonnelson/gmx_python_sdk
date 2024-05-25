@@ -65,7 +65,7 @@ class Markets:
         return reader_contract.functions.getMarkets(
             data_store_contract_address,
             0,
-            18
+            25
         ).call()
 
     def _process_markets(self):
@@ -89,12 +89,12 @@ class Markets:
                     raw_market[1]
                 ):
                     continue
-
+                market_symbol = token_address_dict[raw_market[1]]['symbol']
+                if raw_market[2] == raw_market[3]:
+                    market_symbol = f"{market_symbol}2"
                 decoded_markets[raw_market[0]] = {
                     'gmx_market_address': raw_market[0],
-                    'market_symbol': (
-                        token_address_dict[raw_market[1]]['symbol']
-                    ),
+                    'market_symbol': market_symbol,
                     'index_token_address': raw_market[1],
                     'market_metadata': token_address_dict[raw_market[1]],
                     'long_token_metadata': token_address_dict[raw_market[2]],
