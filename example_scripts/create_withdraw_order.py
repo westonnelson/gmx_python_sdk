@@ -9,6 +9,14 @@ from gmx_python_sdk.scripts.v2.order.liquidity_argument_parser import (
     LiquidityArgumentParser
 )
 
+from gmx_python_sdk.scripts.v2.gmx_utils import (
+    ConfigManager
+)
+
+
+config = ConfigManager("arbitrum")
+config.set_config()
+
 
 parameters = {
     "chain": "arbitrum",
@@ -18,14 +26,16 @@ parameters = {
 }
 
 output = LiquidityArgumentParser(
+    config,
     is_withdrawal=True
 ).process_parameters_dictionary(
     parameters
 )
 
 WithdrawOrder(
-    chain=output["chain"],
+    config=config,
     market_key=output["market_key"],
     out_token=output["out_token_address"],
-    gm_amount=output["gm_amount"]
+    gm_amount=output["gm_amount"],
+    debug_mode=True
 )

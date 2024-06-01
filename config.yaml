@@ -1,5 +1,5 @@
 rpcs:
-  arbitrum: arbitrum_rpc
+  arbitrum: https://arbitrum.meowrpc.com
   avalanche: avax_rpc
 chain_ids:
   arbitrum: 42161

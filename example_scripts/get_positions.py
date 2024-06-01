@@ -8,12 +8,12 @@ from gmx_python_sdk.scripts.v2.get.get_markets import Markets
 
 from gmx_python_sdk.scripts.v2.get.get_open_positions import GetOpenPositions
 from gmx_python_sdk.scripts.v2.gmx_utils import (
-    get_config, find_dictionary_by_key_value, get_tokens_address_dict,
+    ConfigManager, find_dictionary_by_key_value, get_tokens_address_dict,
     determine_swap_route
 )
 
 
-def get_positions(chain: str, address: str = None):
+def get_positions(config, address: str = None):
     """
     Get open positions for an address on a given network.
     If address is not passed it will take the address from the users config
@@ -33,12 +33,12 @@ def get_positions(chain: str, address: str = None):
 
     """
 
-    # TODO - put in a catch here if address passed is None and we dont have
-    # one in config file
     if address is None:
-        address = get_config()['user_wallet_address']
+        address = config.user_wallet_address
+        if address is None:
+            raise Exception("No address passed in function or config!")
 
-    positions = GetOpenPositions(chain=chain, address=address).get_data()
+    positions = GetOpenPositions(config=config, address=address).get_data()
 
     if len(positions) > 0:
         print("Open Positions for {}:".format(address))
@@ -49,7 +49,7 @@ def get_positions(chain: str, address: str = None):
 
 
 def transform_open_position_to_order_parameters(
-    chain: str,
+    config,
     positions: dict,
     market_symbol: str,
     is_long: bool,
@@ -98,7 +98,7 @@ def transform_open_position_to_order_parameters(
 
     try:
         raw_position_data = positions[position_dictionary_key]
-        gmx_tokens = get_tokens_address_dict(chain)
+        gmx_tokens = get_tokens_address_dict(config.chain)
 
         collateral_address = find_dictionary_by_key_value(
             gmx_tokens,
@@ -106,7 +106,7 @@ def transform_open_position_to_order_parameters(
             raw_position_data['collateral_token']
         )["address"]
 
-        gmx_tokens = get_tokens_address_dict(chain)
+        gmx_tokens = get_tokens_address_dict(config.chain)
 
         index_address = find_dictionary_by_key_value(
             gmx_tokens,
@@ -118,7 +118,7 @@ def transform_open_position_to_order_parameters(
             "symbol",
             out_token
         )['address']
-        markets = Markets(chain=chain).get_available_markets()
+        markets = Markets(config=config).get_available_markets()
 
         swap_path = []
 
@@ -133,7 +133,7 @@ def transform_open_position_to_order_parameters(
         ) * amount_of_position_to_close)
 
         return {
-            "chain": chain,
+            "chain": config.chain,
             "market_key": raw_position_data['market'],
             "collateral_address": collateral_address,
             "index_token_address": index_address["address"],
@@ -156,20 +156,28 @@ def transform_open_position_to_order_parameters(
 
 if __name__ == "__main__":
 
-    chain = "arbitrum"
+    config = ConfigManager(chain='arbitrum')
+    config.set_config()
 
     positions = get_positions(
-        chain=chain,
+        config=config,
         address=None
     )
 
     market_symbol = "ETH"
-    is_long = False
+    is_long = True
+
+    out_token = "USDC"
+    amount_of_position_to_close = 1
+    amount_of_collateral_to_remove = 1
 
     order_params = transform_open_position_to_order_parameters(
-        chain,
-        positions,
-        market_symbol,
-        is_long,
-        0.003
+        config=config,
+        positions=positions,
+        market_symbol=market_symbol,
+        is_long=is_long,
+        slippage_percent=0.003,
+        out_token="USDC",
+        amount_of_position_to_close=amount_of_position_to_close,
+        amount_of_collateral_to_remove=amount_of_collateral_to_remove
     )

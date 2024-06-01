@@ -8,11 +8,12 @@ from ..gmx_utils import get_tokens_address_dict
 
 class LiquidityArgumentParser:
 
-    def __init__(self, is_deposit: bool = False, is_withdrawal: bool = False):
+    def __init__(self, config, is_deposit: bool = False, is_withdrawal: bool = False):
 
         self.parameters_dict = None
         self.is_deposit = is_deposit
         self.is_withdrawal = is_withdrawal
+        self.config = config
 
         if is_deposit:
 
@@ -126,7 +127,7 @@ class LiquidityArgumentParser:
 
         # use the index token address to find the market key from get_available_markets
         self.parameters_dict['market_key'] = self.find_market_key_by_index_address(
-            Markets(chain=self.parameters_dict['chain']).get_available_markets(),
+            Markets(self.config).get_available_markets(),
             index_token_address
         )
 
@@ -201,7 +202,7 @@ class LiquidityArgumentParser:
             out_token_symbol
         )
 
-        markets = Markets(chain=self.parameters_dict['chain']).get_available_markets()
+        markets = Markets(self.config).get_available_markets()
         market = markets[self.parameters_dict['market_key']]
 
         if out_token_symbol == "BTC":
@@ -222,7 +223,7 @@ class LiquidityArgumentParser:
         if self.parameters_dict["long_token_address"] is None:
             self.parameters_dict["long_token_amount"] = 0
             return
-        prices = OraclePrices(chain=self.parameters_dict['chain']).get_recent_prices()
+        prices = OraclePrices(chain=self.config.chain).get_recent_prices()
         price = np.median(
             [float(prices[self.parameters_dict["long_token_address"]]['maxPriceFull']),
              float(prices[self.parameters_dict["long_token_address"]]['minPriceFull'])]

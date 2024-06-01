@@ -7,6 +7,11 @@ from gmx_python_sdk.scripts.v2.order.order_argument_parser import (
     OrderArgumentParser
 )
 
+from gmx_python_sdk.scripts.v2.gmx_utils import ConfigManager
+
+config = ConfigManager(chain='arbitrum')
+config.set_config()
+
 
 # Example of passing arguments through the Order parser to close the desired position
 parameters = {
@@ -32,12 +37,11 @@ parameters = {
 }
 
 order_parameters = OrderArgumentParser(
+    config,
     is_decrease=True).process_parameters_dictionary(parameters)
 
-print(order_parameters)
-
 order = DecreaseOrder(
-    chain=order_parameters['chain'],
+    config=config,
     market_key=order_parameters['market_key'],
     collateral_address=order_parameters['collateral_address'],
     index_token_address=order_parameters['index_token_address'],
@@ -45,5 +49,6 @@ order = DecreaseOrder(
     size_delta=order_parameters['size_delta'],
     initial_collateral_delta_amount=order_parameters['initial_collateral_delta'],
     slippage_percent=order_parameters['slippage_percent'],
-    swap_path=[]
+    swap_path=[],
+    debug_mode=True
 )
