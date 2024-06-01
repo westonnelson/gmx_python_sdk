@@ -12,16 +12,17 @@ from gmx_python_sdk.scripts.v2.gmx_utils import (
     get_estimated_swap_output,
     contract_map,
     determine_swap_route,
-    get_tokens_address_dict
+    get_tokens_address_dict,
+    ConfigManager
 )
 
 
 class EstimateSwapOutput:
 
-    def __init__(self, chain):
-        self.chain = chain
-        self.markets = Markets(chain=chain).get_available_markets()
-        self.tokens = get_tokens_address_dict(chain)
+    def __init__(self, config):
+        self.config = config
+        self.markets = Markets(config).get_available_markets()
+        self.tokens = get_tokens_address_dict(config.chain)
 
     def get_swap_output(
             self,
@@ -61,12 +62,12 @@ class EstimateSwapOutput:
         """
 
         if in_token_address is None:
-            in_token_address = OrderArgumentParser().find_key_by_symbol(
+            in_token_address = OrderArgumentParser(config=self.config).find_key_by_symbol(
                 self.tokens,
                 in_token_symbol
             )
         if out_token_address is None:
-            out_token_address = OrderArgumentParser().find_key_by_symbol(
+            out_token_address = OrderArgumentParser(config=self.config).find_key_by_symbol(
                 self.tokens,
                 out_token_symbol
             )
@@ -117,7 +118,7 @@ class EstimateSwapOutput:
 
         """
 
-        prices = OraclePrices(chain=self.chain).get_recent_prices()
+        prices = OraclePrices(self.config.chain).get_recent_prices()
 
         token_addresses = [
             market['index_token_address'],
@@ -135,7 +136,7 @@ class EstimateSwapOutput:
 
         estimated_swap_output_parameters = {
             'data_store_address': (
-                contract_map[self.chain]["datastore"]['contract_address']
+                contract_map[self.config.chain]["datastore"]['contract_address']
             ),
             'market_addresses': [
                 market['gmx_market_address']
@@ -147,7 +148,7 @@ class EstimateSwapOutput:
         }
 
         return get_estimated_swap_output(
-            self.chain,
+            self.config,
             estimated_swap_output_parameters
         )
 
@@ -156,15 +157,17 @@ if __name__ == "__main__":
     import time
 
     start = time.time()
-    chain = "arbitrum"
-    in_token_symbol = "SOL"
+
+    in_token_symbol = "GMX"
     out_token_symbol = "USDC"
-    token_amount = 2
+    token_amount = 10
     in_token_address = None
     out_token_address = None
     token_amount_expanded = None
 
-    output = EstimateSwapOutput(chain=chain).get_swap_output(
+    config = ConfigManager("arbitrum")
+    config.set_config()
+    output = EstimateSwapOutput(config=config).get_swap_output(
         in_token_symbol=in_token_symbol,
         out_token_symbol=out_token_symbol,
         token_amount=token_amount,

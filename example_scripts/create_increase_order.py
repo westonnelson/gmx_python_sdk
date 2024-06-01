@@ -16,14 +16,14 @@ parameters = {
     "chain": 'arbitrum',
 
     # the market you want to trade on
-    "index_token_symbol": "SOL",
+    "index_token_symbol": "GMX",
 
     # token to use as collateral. Start token swaps into collateral token
     # if different
-    "collateral_token_symbol": "SOL",
+    "collateral_token_symbol": "GMX",
 
     # the token to start with - WETH not supported yet
-    "start_token_symbol": "SOL",
+    "start_token_symbol": "USDC",
 
     # True for long, False for short
     "is_long": False,

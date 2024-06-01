@@ -42,7 +42,7 @@ class Deposit:
 
         if self.max_fee_per_gas is None:
             block = create_connection(
-                config.rpc
+                config
             ).eth.get_block('latest')
             self.max_fee_per_gas = block['baseFeePerGas'] * 1.35
 
@@ -52,7 +52,7 @@ class Deposit:
 
         self._connection = create_connection(config)
 
-        self.all_markets_info = Markets(chain=self.config.chain).get_available_markets()
+        self.all_markets_info = Markets(self.config).get_available_markets()
 
         self.log = logging.getLogger(__name__)
         self.log.info("Creating order...")
@@ -91,13 +91,11 @@ class Deposit:
         """
         Submit Transaction
         """
-        self.log.info("Submitting transaction...")
+        self.log.info("Building transaction...")
 
         nonce = self._connection.eth.get_transaction_count(
             user_wallet_address
         )
-
-        # Calculate the max fee per gas from the last baseFeePerGas price and add 10%
 
         raw_txn = self._exchange_router_contract_obj.functions.multicall(
             multicall_args
@@ -367,4 +365,4 @@ class Deposit:
             "ui_fee_receiver": "0x0000000000000000000000000000000000000000"
         }
 
-        return get_estimated_deposit_amount_out(self.config.chain, parameters)
+        return get_estimated_deposit_amount_out(self.config, parameters)

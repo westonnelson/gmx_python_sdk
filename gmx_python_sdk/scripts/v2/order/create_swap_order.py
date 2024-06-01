@@ -90,7 +90,7 @@ class SwapOrder(Order):
         }
 
         estimated_swap_output = get_estimated_swap_output(
-            self.config.chain,
+            self.config,
             estimated_swap_output_parameters
         )
 
