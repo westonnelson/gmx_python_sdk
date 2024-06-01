@@ -7,6 +7,11 @@ from gmx_python_sdk.scripts.v2.order.order_argument_parser import (
     OrderArgumentParser
 )
 
+from gmx_python_sdk.scripts.v2.gmx_utils import ConfigManager
+
+config = ConfigManager(chain='arbitrum')
+config.set_config()
+
 
 parameters = {
     "chain": 'arbitrum',
@@ -34,13 +39,14 @@ parameters = {
 
 
 order_parameters = OrderArgumentParser(
+    config,
     is_swap=True
 ).process_parameters_dictionary(
     parameters
 )
 
 order = SwapOrder(
-    chain=order_parameters['chain'],
+    config=config,
     market_key=order_parameters['swap_path'][-1],
     start_token=order_parameters['start_token_address'],
     out_token=order_parameters['out_token_address'],
@@ -53,5 +59,5 @@ order = SwapOrder(
     ),
     slippage_percent=order_parameters['slippage_percent'],
     swap_path=order_parameters['swap_path'],
-    debug_mode=False
+    debug_mode=True
 )

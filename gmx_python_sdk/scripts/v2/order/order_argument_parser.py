@@ -228,7 +228,7 @@ class OrderArgumentParser:
         if self.is_swap:
             # first get markets to supply to determine_swap_route
             markets = Markets(
-                chain=self.parameters_dict['chain']
+                self.config
             ).get_available_markets()
 
             # function returns swap route as a list [0] and a bool if there is a multi swap [1]
@@ -247,7 +247,7 @@ class OrderArgumentParser:
 
             # first get markets to supply to determine_swap_route
             markets = Markets(
-                chain=self.parameters_dict['chain']
+                self.config
             ).get_available_markets()
 
             # function returns swap route as a list [0] and a bool if there is a multi swap [1]

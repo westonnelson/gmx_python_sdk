@@ -5,6 +5,14 @@ _set_paths()
 from gmx_python_sdk.scripts.v2.order.create_deposit_order import DepositOrder
 from gmx_python_sdk.scripts.v2.order.liquidity_argument_parser import LiquidityArgumentParser
 
+from gmx_python_sdk.scripts.v2.gmx_utils import (
+    ConfigManager
+)
+
+
+config = ConfigManager("arbitrum")
+config.set_config()
+
 
 parameters = {
     "chain": "arbitrum",
@@ -16,13 +24,17 @@ parameters = {
 }
 
 output = LiquidityArgumentParser(
-    is_deposit=True).process_parameters_dictionary(parameters)
+    config, is_deposit=True
+).process_parameters_dictionary(
+    parameters
+)
 
 DepositOrder(
-    chain=output["chain"],
+    config,
     market_key=output["market_key"],
     initial_long_token=output["long_token_address"],
     initial_short_token=output["short_token_address"],
     long_token_amount=output["long_token_amount"],
-    short_token_amount=output["short_token_amount"]
+    short_token_amount=output["short_token_amount"],
+    debug_mode=True
 )

@@ -44,12 +44,12 @@ class Withdraw:
             self.max_fee_per_gas = block['baseFeePerGas'] * 1.35
 
         self._exchange_router_contract_obj = get_exchange_router_contract(
-            config.chain
+            config
         )
 
         self._connection = create_connection(config)
 
-        self.all_markets_info = Markets(chain=config.chain).get_available_markets()
+        self.all_markets_info = Markets(config).get_available_markets()
 
         self.log = logging.getLogger(__name__)
         self.log.info("Creating order...")
@@ -65,7 +65,7 @@ class Withdraw:
         """
         spender = contract_map[self.config.chain]["syntheticsrouter"]['contract_address']
 
-        check_if_approved(self.config.chain,
+        check_if_approved(self.config,
                           spender,
                           self.market_key,
                           self.gm_amount,
@@ -79,7 +79,7 @@ class Withdraw:
         """
         Submit Transaction
         """
-        self.log.info("Submitting transaction...")
+        self.log.info("Building transaction...")
 
         nonce = self._connection.eth.get_transaction_count(
             user_wallet_address
@@ -102,6 +102,7 @@ class Withdraw:
             }
         )
         if not self.debug_mode:
+
             signed_txn = self._connection.eth.account.sign_transaction(
                 raw_txn, self.config.private_key
             )
@@ -312,4 +313,4 @@ class Withdraw:
             "ui_fee_receiver": "0x0000000000000000000000000000000000000000"
         }
 
-        return get_estimated_withdrawal_amount_out(self.config.chain, parameters)
+        return get_estimated_withdrawal_amount_out(self.config, parameters)

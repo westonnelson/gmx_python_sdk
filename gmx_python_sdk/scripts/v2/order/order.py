@@ -75,7 +75,7 @@ class Order:
         """
         Submit Transaction
         """
-        self.log.info("Submitting transaction...")
+        self.log.info("Building transaction...")
         try:
             wallet_address = Web3.to_checksum_address(user_wallet_address)
         except AttributeError:
