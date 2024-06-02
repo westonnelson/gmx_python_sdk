@@ -74,7 +74,7 @@ There are several example scripts which can be run and can be found in [example 
 The following block demonstrates how to open (or increase) a position:
 
 ```python
-from scripts.v2.create_increase_order import IncreaseOrder
+from gmx_python_sdk_scripts.v2.order.create_increase_order import IncreaseOrder
 
 order = IncreaseOrder(
     config=config,
@@ -114,7 +114,7 @@ order = IncreaseOrder(
 The following block demonstrates how to close (or decrease) a position:
 
 ```python
-from scripts.v2.create_decrease_order import DecreaseOrder
+from gmx_python_sdk_scripts.v2.order.create_decrease_order import DecreaseOrder
 
 order = DecreaseOrder(
     config=config,
@@ -154,7 +154,7 @@ order = DecreaseOrder(
 The following block demonstrates how to make a swap:
 
 ```python
-from scripts.v2.create_swap_order import SwapOrder
+from gmx_python_sdk_scripts.v2.order.create_swap_order import SwapOrder
 
 order = SwapOrder(
     config=config,
@@ -200,7 +200,7 @@ order = SwapOrder(
 The following block demonstrates how to make a deposit to a gm pool:
 
 ```python
-from scripts.v2.create_deposit_order import DepositOrder
+from gmx_python_sdk_scripts.v2.order.create_deposit_order import DepositOrder
 
 order = DepositOrder(
     config=config,
@@ -231,7 +231,7 @@ order = DepositOrder(
 The following block demonstrates how to make a withdrawal from a gm pool:
 
 ```python
-from scripts.v2.create_withdrawal_order import WithdrawOrder
+from gmx_python_sdk_scripts.v2.order.create_withdrawal_order import WithdrawOrder
 
 order = WithdrawOrder(
     config=config,
