@@ -3,6 +3,7 @@
 
 A python based SDK developed for interacting with GMX v2
 
+- [Pip Install](https://github.com/snipermonke01/gmx_python_sdk/tree/main?tab=readme-ov-file#pip-install)
 - [Requirements](https://github.com/snipermonke01/gmx_python_sdk/tree/main?tab=readme-ov-file#requirements)
 - [Config File Setup](https://github.com/snipermonke01/gmx_python_sdk/tree/main?tab=readme-ov-file#config-file-setup)
 - [Example Scripts](https://github.com/snipermonke01/gmx_python_sdk/tree/main?tab=readme-ov-file#example-scripts)
@@ -21,6 +22,13 @@ A python based SDK developed for interacting with GMX v2
     - [Debug Mode](https://github.com/snipermonke01/gmx_python_sdk/tree/main?tab=readme-ov-file#debug-mode)
 - [Known Limitations](https://github.com/snipermonke01/gmx_python_sdk/tree/main?tab=readme-ov-file#known-limitations)
 
+## Pip Install
+
+The SDK can be installed via pip:
+
+```
+pip install gmx-python-sdk
+```
 
 ## Requirements
 
